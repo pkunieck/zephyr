@@ -1,5 +1,25 @@
 FROM ubuntu:18.04
 
+#proxy args set/override at build stage like this:
+#   docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
+ARG HTTPPROXY=
+ARG HTTPSPROXY=
+ARG NOPROXY=
+#NOTE: The formatting of the proxy string is important, it must be:
+#     'http://<proxy.url>:<proxy.port'
+# otherwise the awk-based proxy.xml writer (below) will fail
+
+#Incorporate proxy settings- these affect the running container ONLY.
+#If you're having issues with the docker build behind a proxy, make sure the docker daemon is configured for proxy access:
+#https://docs.docker.com/network/proxy/
+ENV no_proxy=$NOPROXY
+ENV http_proxy=$HTTPPROXY
+ENV https_proxy=$HTTPSPROXY
+ENV NO_PROXY=$NOPROXY
+ENV HTTP_PROXY=$HTTPPROXY
+ENV HTTPS_PROXY=$HTTPSPROXY
+
+
 ARG ZSDK_VERSION=0.10.3
 ARG GCC_ARM_NAME=gcc-arm-none-eabi-9-2019-q4-major
 ARG CMAKE_VERSION=3.16.2
@@ -13,8 +33,10 @@ RUN dpkg --add-architecture i386 && \
 	apt-get -y upgrade && \
 	apt-get install --no-install-recommends -y \
 	gnupg \
-	ca-certificates && \
-	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
+	ca-certificates \
+	wget && \
+    apt-key adv --keyserver keyserver.ubuntu.com --keyserver-options http-proxy=$HTTPPROXY --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
+#PROXY INJECT                                                      PROXY INJECT     ^^^^^^^^^^ \
 	echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic main" | tee /etc/apt/sources.list.d/mono-official-stable.list && \
 	apt-get -y update && \
 	apt-get install --no-install-recommends -y \
@@ -33,6 +55,7 @@ RUN dpkg --add-architecture i386 && \
 	gcovr \
 	git \
 	git-core \
+	gitlab-runner \
 	gperf \
 	gtk-sharp2 \
 	iproute2 \
@@ -45,20 +68,24 @@ RUN dpkg --add-architecture i386 && \
 	locales \
 	make \
 	mono-complete \
+	nano \
 	net-tools \
 	ninja-build \
 	openbox \
+	openjdk-8-jdk \
 	pkg-config \
 	python3-pip \
 	python3-ply \
 	python3-setuptools \
 	python-xdg \
 	qemu \
+	rsync \
 	socat \
+	ssh \
 	sudo \
 	texinfo \
+	unzip \
 	valgrind \
-	wget \
 	x11vnc \
 	xvfb \
 	xz-utils && \
@@ -118,7 +145,7 @@ EXPOSE 5900
 
 ENTRYPOINT ["/home/user/entrypoint.sh"]
 CMD ["/bin/bash"]
-USER user
+
 WORKDIR /workdir
 VOLUME ["/workdir"]
 
