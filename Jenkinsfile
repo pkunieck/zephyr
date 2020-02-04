@@ -8,13 +8,13 @@ node('master') {
              "no_proxy=localhost,proxy-chain.intel.com:911"]) {
 		checkout scm
 		stage("docker build") {
-			sh "docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t  amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:production ."
+			sh "docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t  amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:v1.14-branch ."
 		}
 		stage("docker tag and push") {
 			withCredentials([usernamePassword(credentialsId: '7a961c1f-23a6-492b-8007-6773737ca144', passwordVariable: 'REGISTRYPASS', usernameVariable: 'REGISTRYUSER')]) {
 				sh "docker login -u $REGISTRYUSER -p $REGISTRYPASS amr-registry.caas.intel.com"
 			}
-			sh "docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:production"
+			sh "docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:v1.14-branch"
 			sh "docker logout amr-registry.caas.intel.com"
 		}
 	}//env
