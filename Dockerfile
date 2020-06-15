@@ -1,5 +1,4 @@
 FROM ubuntu:18.04
-
 #proxy args set/override at build stage like this:
 #   docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
 ARG HTTPPROXY=
@@ -20,11 +19,14 @@ ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
 
-ARG ZSDK_VERSION=0.10.3
+ARG ZSDK_VERSION=0.11.3
 ARG GCC_ARM_NAME=gcc-arm-none-eabi-9-2019-q4-major
 ARG CMAKE_VERSION=3.16.2
 ARG RENODE_VERSION=1.8.2
 ARG DTS_VERSION=1.4.7
+
+ARG UID=1000
+ARG GID=1000
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -74,6 +76,7 @@ RUN dpkg --add-architecture i386 && \
 	openbox \
 	openjdk-8-jdk \
 	pkg-config \
+	python3-dev \
 	python3-pip \
 	python3-ply \
 	python3-setuptools \
@@ -89,7 +92,7 @@ RUN dpkg --add-architecture i386 && \
 	x11vnc \
 	xvfb \
 	xz-utils && \
-	wget -O dtc.deb http://security.ubuntu.com/ubuntu/pool/main/d/device-tree-compiler/device-tree-compiler_${DTS_VERSION}-1_amd64.deb && \
+	wget -O dtc.deb http://security.ubuntu.com/ubuntu/pool/main/d/device-tree-compiler/device-tree-compiler_${DTS_VERSION}-3ubuntu2_amd64.deb && \
 	dpkg -i dtc.deb && \
 	wget -O renode.deb https://github.com/renode/renode/releases/download/v${RENODE_VERSION}/renode_${RENODE_VERSION}_amd64.deb && \
 	apt install -y ./renode.deb && \
@@ -103,6 +106,11 @@ ENV LC_ALL en_US.UTF-8
 
 
 RUN wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements.txt && \
+	wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements-base.txt && \
+	wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements-build-test.txt && \
+	wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements-doc.txt && \
+	wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements-run-test.txt && \
+	wget -q https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements-extras.txt && \
 	pip3 install wheel &&\
 	pip3 install -r requirements.txt && \
 	pip3 install west &&\
@@ -123,8 +131,9 @@ RUN wget -q https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}
 	./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
 	rm -f ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh
 
+RUN groupadd -g $GID -o user
 
-RUN useradd -m -G plugdev user \
+RUN useradd -u $UID -m -g user -G plugdev user \
 	&& echo 'user ALL = NOPASSWD: ALL' > /etc/sudoers.d/user \
 	&& chmod 0440 /etc/sudoers.d/user
 
