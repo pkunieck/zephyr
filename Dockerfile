@@ -66,6 +66,7 @@ RUN dpkg --add-architecture i386 && \
 	libgtk2.0-0 \
 	libpcap-dev \
 	libsdl2-dev:i386 \
+	libsdl2-dev \
 	libtool \
 	locales \
 	make \
@@ -80,10 +81,12 @@ RUN dpkg --add-architecture i386 && \
 	python3-pip \
 	python3-ply \
 	python3-setuptools \
+	python3-tk \
 	python-xdg \
 	qemu \
 	rsync \
 	socat \
+	srecord \
 	ssh \
 	sudo \
 	texinfo \
