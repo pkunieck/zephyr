@@ -8,6 +8,8 @@ node('testhead-jf') {
              "no_proxy=localhost,proxy-chain.intel.com:911"]) {
 		checkout scm
 		stage("docker build") {
+			//chmod 777 entrypoint to allow non-root users to access, required on PRD VMs - likely from home dir flags/permissions
+			sh "chmod 777 entrypoint.sh"
 			sh "docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy --build-arg UID=\$(id -u) --build-arg GID=\$(id -g) -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:staging ."
 		}
 //cv: disabling push to registry while testing
