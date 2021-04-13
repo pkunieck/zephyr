@@ -1,5 +1,5 @@
 properties([disableConcurrentBuilds()])
-node('jfsotc17') {
+node('testhead-jf') {
     deleteDir()
     withEnv(["HTTP_PROXY=http://proxy-chain.intel.com:911",
              "HTTPS_PROXY=http://proxy-chain.intel.com:911",
@@ -8,7 +8,7 @@ node('jfsotc17') {
              "no_proxy=localhost,proxy-chain.intel.com:911"]) {
 		checkout scm
 		stage("docker build") {
-			sh "docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t  amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:staging ."
+			sh "docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy --build-arg UID=\$(id -u) --build-arg GID=\$(id -g) -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:staging ."
 		}
 //cv: disabling push to registry while testing
 //		stage("docker tag and push") {
