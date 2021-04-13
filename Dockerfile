@@ -153,7 +153,7 @@ EXPOSE 5900
 
 ENTRYPOINT ["/home/user/entrypoint.sh"]
 CMD ["/bin/bash"]
-
+USER user
 WORKDIR /workdir
 VOLUME ["/workdir"]
 
