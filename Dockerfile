@@ -130,11 +130,11 @@ RUN chmod +x cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
 	./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
 	rm -f ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh
 
-RUN groupadd -g $GID -o user
+RUN groupadd -g $GID -o jenkins
 
-RUN useradd -u $UID -m -g user -G plugdev user \
-	&& echo 'user ALL = NOPASSWD: ALL' > /etc/sudoers.d/user \
-	&& chmod 0440 /etc/sudoers.d/user
+RUN useradd -u $UID -m -g jenkins -G plugdev jenkins \
+	&& echo 'jenkins ALL = NOPASSWD: ALL' > /etc/sudoers.d/jenkins \
+	&& chmod 0440 /etc/sudoers.d/jenkins
 
 # Set the locale
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -144,16 +144,16 @@ ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
 ENV DISPLAY=:0
 
-RUN chown -R user:user /home/user
+RUN chown -R jenkins:jenkins /home/jenkins
 
-ADD ./entrypoint.sh /home/user/entrypoint.sh
-RUN dos2unix /home/user/entrypoint.sh
+ADD ./entrypoint.sh /home/jenkins/entrypoint.sh
+RUN dos2unix /home/jenkins/entrypoint.sh
 
 EXPOSE 5900
 
-ENTRYPOINT ["/home/user/entrypoint.sh"]
+ENTRYPOINT ["/home/jenkins/entrypoint.sh"]
 CMD ["/bin/bash"]
-USER user
+USER jenkins
 WORKDIR /workdir
 VOLUME ["/workdir"]
 
