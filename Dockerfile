@@ -85,6 +85,7 @@ RUN apt-get install --no-install-recommends -y \
 	openbox \
 	openjdk-8-jdk \
 	pkg-config \
+	protobuf-compiler \
 	python3-dev \
 	python3-pip \
 	python3-ply \
