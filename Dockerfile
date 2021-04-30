@@ -145,10 +145,14 @@ ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
 ENV DISPLAY=:0
 
+RUN mkdir /home/jenkins/.ssh && \
+	ssh-keyscan -t rsa -p 29418 gitlab.devtools.intel.com > /home/jenkins/.ssh/known_hosts
+
 RUN chown -R jenkins:jenkins /home/jenkins
 
 ADD ./entrypoint.sh /home/jenkins/entrypoint.sh
 RUN dos2unix /home/jenkins/entrypoint.sh
+
 
 EXPOSE 5900
 
