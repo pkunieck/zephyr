@@ -16,3 +16,147 @@ jobs:
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
           docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
         shell: bash
+
+  twisterTest_1of3:
+    needs: [ dockerBuildPush2Stg ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: west
+        run: |
+          cd zephyrproject
+          if [ ! -d .west ]; then
+            west init -l zephyr
+          fi
+          west update
+          cd -
+      - name: twister
+        run: |
+          export ZEPHYR_BASE=$GITHUB_WORKSPACE/zephyrproject/zephyr
+          set
+          cd zephyrproject/zephyr
+          scripts/twister --integration -M -x=USE_CCACHE=0 -N --inline-logs -v --save-tests testcases
+          cp testcases testcases.0
+          . .github/workflows/twisterSkipList
+          for tc in "${TWISTER_SKIP_LIST[@]}"; do
+            sed -i "\\#$tc#d" testcases
+          done
+          scripts/twister -B 1/3 -M --integration --load-tests testcases -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+          cd -        
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_1of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
+          
+  twisterTest_2of3:
+    needs: [ dockerBuildPush2Stg ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: west
+        run: |
+          cd zephyrproject
+          if [ ! -d .west ]; then
+            west init -l zephyr
+          fi
+          west update
+          cd -
+      - name: twister
+        run: |
+          export ZEPHYR_BASE=$GITHUB_WORKSPACE/zephyrproject/zephyr
+          set
+          cd zephyrproject/zephyr
+          scripts/twister -x=USE_CCACHE=0 --integration -M -N --inline-logs -v --save-tests testcases
+          cp testcases testcases.0
+          . .github/workflows/twisterSkipList
+          for tc in "${TWISTER_SKIP_LIST[@]}"; do
+            sed -i "\\#$tc#d" testcases
+          done
+          scripts/twister -B 2/3 --integration --load-tests testcases -M -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+          cd -        
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_2of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
+          
+  twisterTest_3of3:
+    needs: [ dockerBuildPush2Stg ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: west
+        run: |
+          cd zephyrproject
+          if [ ! -d .west ]; then
+            west init -l zephyr
+          fi
+          west update
+          cd -
+      - name: twister
+        run: |
+          export ZEPHYR_BASE=$GITHUB_WORKSPACE/zephyrproject/zephyr
+          set
+          cd zephyrproject/zephyr
+          scripts/twister -x=USE_CCACHE=0 --integration -M -N --inline-logs -v --save-tests testcases
+          cp testcases testcases.0
+          . .github/workflows/twisterSkipList
+          for tc in "${TWISTER_SKIP_LIST[@]}"; do
+            sed -i "\\#$tc#d" testcases
+          done
+          scripts/twister -B 3/3 --integration --load-tests testcases -M -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+          cd -        
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_3of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
+
+  promoteImage2Prod: 
+    needs: [ twisterTest_1of3, twisterTest_2of3, twisterTest_3of3 ]
+    runs-on: testhead
+    steps:
+      - run: |
+            docker tag 127.0.0.1:5000/sdk-docker-intel:main 127.0.0.1:5000/sdk-docker-intel:main.last
+            docker tag 127.0.0.1:5000/sdk-docker-intel:main.stg 127.0.0.1:5000/sdk-docker-intel:main
+            docker push 127.0.0.1:5000/sdk-docker-intel:main
+            docker rmi 127.0.0.1:5000/sdk-docker-intel:main.stg
+        shell: bash
+
