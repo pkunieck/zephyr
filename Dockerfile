@@ -20,9 +20,9 @@ ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
 ARG ZSDK_VERSION=0.12.4
-ARG ZSDK_ALT_VERSION=0.13.0
+ARG ZSDK_ALT_VERSION=0.13.1
 ARG GCC_ARM_NAME=gcc-arm-none-eabi-10-2020-q4-major
-ARG CMAKE_VERSION=3.20.0
+ARG CMAKE_VERSION=3.20.5
 ARG RENODE_VERSION=1.12.0
 ARG LLVM_VERSION=12
 ARG BSIM_VERSION=v1.0.3
@@ -52,8 +52,11 @@ RUN dpkg --add-architecture i386 && \
 	bison \
 	build-essential \
 	ccache \
+	chrpath \
+	cpio \
 	device-tree-compiler \
 	dfu-util \
+	diffstat \
 	dos2unix \
 	doxygen \
 	file \
@@ -105,6 +108,7 @@ RUN dpkg --add-architecture i386 && \
 	unzip \
 	valgrind \
 	wget \
+	ovmf \
 	xz-utils && \
 	wget ${WGET_ARGS} https://github.com/renode/renode/releases/download/v${RENODE_VERSION}/renode_${RENODE_VERSION}_amd64.deb && \
 	apt install -y ./renode_${RENODE_VERSION}_amd64.deb && \
@@ -177,6 +181,13 @@ ADD ./entrypoint.sh /home/jenkins/entrypoint.sh
 RUN dos2unix /home/jenkins/entrypoint.sh
 
 RUN chown -R jenkins:jenkins /home/jenkins
+
+RUN wget ${WGET_ARGS} https://static.rust-lang.org/rustup/rustup-init.sh && \
+	chmod +x rustup-init.sh && \
+	./rustup-init.sh -y && \
+	. $HOME/.cargo/env && \
+	cargo install uefi-run --root /usr && \
+	rm -f ./rustup-init.sh
 
 # Set the locale
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
