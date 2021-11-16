@@ -202,6 +202,10 @@ RUN wget ${WGET_ARGS} https://static.rust-lang.org/rustup/rustup-init.sh && \
 	cargo install uefi-run --root /usr && \
 	rm -f ./rustup-init.sh
 
+# create container /opt/1rtos directory from repo 1rtos directory
+COPY ./1rtos/* /opt/1rtos/
+RUN chmod -R 755 /opt/1rtos
+
 # Set the locale
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-${ZSDK_ALT_VERSION}
