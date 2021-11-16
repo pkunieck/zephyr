@@ -133,7 +133,10 @@ RUN pip3 install wheel pip -U &&\
 
 RUN mkdir -p /opt/toolchains
 
-#RUN wget ${WGET_ARGS} https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/${GCC_ARM_NAME}-x86_64-linux.tar.bz2  && \
+# 1RTOS DevOps Note:
+# ARM GCC SDK is distributed via NFS so we omit it from container image to reduce size
+#
+# RUN wget ${WGET_ARGS} https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/${GCC_ARM_NAME}-x86_64-linux.tar.bz2  && \
 #	tar -xf ${GCC_ARM_NAME}-x86_64-linux.tar.bz2 -C /opt/toolchains/ && \
 #	rm -f ${GCC_ARM_NAME}-x86_64-linux.tar.bz2
 
@@ -157,6 +160,9 @@ RUN cd /opt/bsim && \
 	echo ${BSIM_VERSION} > ./version && \
 	chmod ag+w . -R
 
+# 1RTOS DevOps Note:
+# Zephyr SDKs are distributed via NFS so we can omit it here to save space.
+#
 #RUN wget ${WGET_ARGS} https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZSDK_VERSION}/zephyr-sdk-${ZSDK_VERSION}-x86_64-linux-setup.run && \
 #	sh "zephyr-sdk-${ZSDK_VERSION}-x86_64-linux-setup.run" --quiet -- -d /opt/toolchains/zephyr-sdk-${ZSDK_VERSION} && \
 #	rm "zephyr-sdk-${ZSDK_VERSION}-x86_64-linux-setup.run"
@@ -165,7 +171,7 @@ RUN cd /opt/bsim && \
 #	sh "zephyr-sdk-${ZSDK_ALT_VERSION}-linux-x86_64-setup.run" --quiet -- -d /opt/toolchains/zephyr-sdk-${ZSDK_ALT_VERSION} && \
 #	rm "zephyr-sdk-${ZSDK_ALT_VERSION}-linux-x86_64-setup.run"
 
-# test installing github-cli per https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+# Install github-cli per https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 RUN	apt update && apt install -y --no-install-recommends curl && \
 		curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
