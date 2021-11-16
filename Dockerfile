@@ -180,19 +180,20 @@ RUN	apt update && apt install -y --no-install-recommends curl && \
 RUN apt-get clean && \
 	sudo apt-get autoremove --purge
 
-RUN groupadd -g $GID -o jenkins
+RUN groupadd -g $GID -o 1rtosdev
 
-RUN useradd -u $UID -m -g jenkins -G plugdev jenkins \
-	&& echo 'jenkins ALL = NOPASSWD: ALL' > /etc/sudoers.d/jenkins \
-	&& chmod 0440 /etc/sudoers.d/jenkins
+RUN useradd -u $UID -m -g 1rtosdev -G plugdev 1rtosdev \
+	&& echo '1rtosdev ALL = NOPASSWD: ALL' > /etc/sudoers.d/1rtosdev \
+	&& chmod 0440 /etc/sudoers.d/1rtosdev
 
-RUN mkdir /home/jenkins/.ssh && \
-	ssh-keyscan -t rsa -p 29418 gitlab.devtools.intel.com > /home/jenkins/.ssh/known_hosts
+# pre-load ssh-key for gitlab @ Intel, required for automated, SSH-authenticated push/pulls
+RUN mkdir /home/1rtosdev/.ssh && \
+	ssh-keyscan -t rsa -p 29418 gitlab.devtools.intel.com > /home/1rtosdev/.ssh/known_hosts
 
-ADD ./entrypoint.sh /home/jenkins/entrypoint.sh
-RUN dos2unix /home/jenkins/entrypoint.sh
+ADD ./entrypoint.sh /home/1rtosdev/entrypoint.sh
+RUN dos2unix /home/1rtosdev/entrypoint.sh
 
-RUN chown -R jenkins:jenkins /home/jenkins
+RUN chown -R 1rtosdev:1rtosdev /home/1rtosdev
 
 RUN wget ${WGET_ARGS} https://static.rust-lang.org/rustup/rustup-init.sh && \
 	chmod +x rustup-init.sh && \
@@ -207,8 +208,8 @@ ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-${ZSDK_ALT_VERSION}
 ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
 
-ENTRYPOINT ["/home/jenkins/entrypoint.sh"]
+ENTRYPOINT ["/home/1rtosdev/entrypoint.sh"]
 CMD ["/bin/bash"]
-USER jenkins
+USER 1rtosdev
 WORKDIR /workdir
 VOLUME ["/workdir"]
