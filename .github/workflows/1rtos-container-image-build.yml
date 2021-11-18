@@ -1,0 +1,93 @@
+name: container-image-build
+on:
+  pull_request:
+    branches:
+      - main-intel
+  workflow_dispatch:
+
+jobs:
+  buildAndStageImage: 
+    runs-on: testhead
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          set       
+          chmod 777 entrypoint.sh
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
+          docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
+        shell: bash
+
+  twisterTest_1of3:
+    needs: [ buildAndStageImage ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: 1rtos-ci
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 1 3 "--integration"
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_1of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
+          
+  twisterTest_2of3:
+    needs: [ buildAndStageImage ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: 1rtos-ci
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 2 3 "--integration"
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_2of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
+          
+  twisterTest_3of3:
+    needs: [ buildAndStageImage ]
+    defaults:
+      run:
+        shell: bash  
+    runs-on: uzdo128
+    container:
+      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
+      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
+          ref: '1rtos-ci-self-test'
+          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+      - name: 1rtos-ci
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 3 3 "--integration"
+      - name: log artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_3of3
+          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
+          retention-days: 30
