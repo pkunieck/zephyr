@@ -1,13 +1,15 @@
 #!/bin/bash
 
 # 1rtos/container-api.sh
-#  ~ a library of shell functions to standardize our 1rtos-container interfaces
+#  -a library of shell functions to standardize our 1rtos-container interfaces
 #
-# This file is sourced into the env at container start, just ahead of any automation calls.
+# Usage:
+#   a.) Source this file ahead of ahead of any automation calls and call functions directly
+#   b.) Call this script with the function name + parameters, eg:
+#	container-api.sh 1rtos-ci <workspace> <batch> ....
 
-
-#########################
 # 1rtos-ci <workspace> <batch> <parallel> <option>
+# ------------------------------------------------
 # * standard method for ci/qemu twister with skipList support, both container & repo defined.
 #	<workspace> ($1) = path to workspace in container
 #	<batch>	    ($2) = which batch number am I
@@ -47,3 +49,9 @@
 	scripts/twister -B "$2/$3" -M --load-tests testcases -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60 "$4"
 }
 export -f 1rtos-ci
+
+# process internal method calls
+
+if [ "$1" == "1rtos-ci" ]; then
+	1rtos-ci "$2" "$3" "$4" "$5"
+fi
