@@ -18,77 +18,46 @@ jobs:
           docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
         shell: bash
 
-  twisterTest_1of3:
+  runTwister:
+    runs-on: uzdo128
     needs: [ buildAndStageImage ]
     defaults:
       run:
-        shell: bash  
-    runs-on: uzdo128
+        shell: bash
     container:
       image: 192.168.0.200:5000/sdk-docker-intel:main.stg
       options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+    strategy:
+      matrix:
+        batch: [1, 2, 3]
+        batch_total: [ 3 ] 
     steps:
-      - uses: actions/checkout@v2
+      - name: checkout zephyr ci-self-test tag
+        uses: actions/checkout@v2
         with:
           path: 'zephyrproject/zephyr'
           repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
-          ref: '1rtos-ci-self-test'
-          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
+          ref: '1rtos-ci-self-test' 
+          token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
       - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 1 3 "--integration"
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }} "--integration"
       - name: log artifacts
+        if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: twisterLog_1of3
-          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
-          retention-days: 30
-          
-  twisterTest_2of3:
-    needs: [ buildAndStageImage ]
-    defaults:
-      run:
-        shell: bash  
-    runs-on: uzdo128
-    container:
-      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+          name: twisterLog_${{ matrix.batch }}of${{ matrix.batch_total }}
+          path: |
+            zephyrproject/zephyr/twister-out/twister.log
+            zephyrproject/zephyr/twister-out/twister.xml
+          retention-days: 1               
+
+# "OneRTOS-CI-Passed" is our exit job that matches branch-protection status-check
+# settings for PR workflow. Make sure all required tests are prereqs to this job.
+# For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
+# echo.
+  OneRTOS-CI-Passed:
+    needs: [ buildAndStageImage, runTwister ]
+    runs-on: testhead
     steps:
-      - uses: actions/checkout@v2
-        with:
-          path: 'zephyrproject/zephyr'
-          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
-          ref: '1rtos-ci-self-test'
-          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
-      - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 2 3 "--integration"
-      - name: log artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: twisterLog_2of3
-          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
-          retention-days: 30
-          
-  twisterTest_3of3:
-    needs: [ buildAndStageImage ]
-    defaults:
-      run:
-        shell: bash  
-    runs-on: uzdo128
-    container:
-      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          path: 'zephyrproject/zephyr'
-          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
-          ref: '1rtos-ci-self-test'
-          token: ${{ secrets.CHRISVINTC_AT_INNERSOURCE }} 
-      - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE 3 3 "--integration"
-      - name: log artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: twisterLog_3of3
-          path: ${{ github.workspace }}/zephyrproject/zephyr/twister-out/twister.log
-          retention-days: 30
+      - name: Post run steps
+        run: echo "OneRTOS-CI-Passsed"

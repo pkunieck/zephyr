@@ -1,32 +1,34 @@
 #!/bin/bash
 
 # 1rtos/container-api.sh
-#  -a library of shell functions to standardize our 1rtos-container interfaces
+#  - standardized CI/QA functions via our 1rtos-test container ( sdk-docker-intel )
 #
 # Usage:
-#   a.) Source this file ahead of ahead of any automation calls and call functions directly
-#   b.) Call this script with the function name + parameters, eg:
-#	container-api.sh 1rtos-ci <workspace> <batch> ....
+#   Call this script with the function name + parameters, eg:
+#	$ container-api.sh 1rtos-ci <workspace> <batch> ....
 
-# 1rtos-ci <workspace> <batch> <parallel> <option>
+# 1rtos-ci workspace batch# parallel# <option-str>
 # ------------------------------------------------
 # * standard method for ci/qemu twister with skipList support, both container & repo defined.
-#	<workspace> ($1) = path to workspace in container
-#	<batch>	    ($2) = which batch number am I
-#	<parallel>  ($3) = total number of parallel jobs
-#	<extra>     ($4) = optional twister parameter to pass, typically used for "--integration"
+#	<workspace> ($2) = path to workspace in container
+#	<batch#>    ($3) = which batch number am I
+#	<parallel#> ($4) = total number of parallel jobs
+#	<option-str>($5) = optional twister parameter to pass, typically used for "--integration"
 1rtos-ci() {
-	cd "$1/zephyrproject"
+	cd "$2/zephyrproject"
 	if [ ! -d .west ]; then
 		west init -l zephyr
 	fi
 	west update
 
-	export ZEPHYR_BASE="$1/zephyrproject/zephyr"
-	cd "$1/zephyrproject/zephyr"
+	export ZEPHYR_BASE="$2/zephyrproject/zephyr"
+	cd "$ZEPHYR_BASE"
+	
+	# set twister cmdline, injecting $5/option-str
+	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v $5" 
 
 	# store all testcases
-	scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v --save-tests testcases "$4"
+	$TWISTER_CMD --save-tests testcases
 	cp testcases testcases.0
 
 	# apply twisterSkipList if exists in container
@@ -46,12 +48,12 @@
 	fi
 
 	# run twister with our standard options + injected batch/parallel & extra params
-	scripts/twister -B "$2/$3" -M --load-tests testcases -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60 "$4"
+	$TWISTER_CMD -B $3/$4 --load-tests testcases --retry-failed 3 --retry-interval 60
 }
-export -f 1rtos-ci
+
+echo "oneRTOS container API invoked as: $@"
 
 # process internal method calls
-
 if [ "$1" == "1rtos-ci" ]; then
-	1rtos-ci "$2" "$3" "$4" "$5"
+	1rtos-ci "${@}"
 fi
