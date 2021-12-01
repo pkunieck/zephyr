@@ -39,7 +39,7 @@ jobs:
           ref: '1rtos-ci-self-test' 
           token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
       - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }}  "--integration"
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }}
       - name: log artifacts
         if: always()
         uses: actions/upload-artifact@v2
