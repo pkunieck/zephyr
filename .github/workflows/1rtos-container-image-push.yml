@@ -1,4 +1,5 @@
 name: container-image-push
+concurrency: 1rtos_container_cd
 on:
   push:
     branches:

@@ -1,4 +1,5 @@
 name: container-image-build
+concurrency: 1rtos_container_cd
 on:
   pull_request:
     branches:
@@ -6,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  buildAndStageImage: 
+  buildAndStageImage:
     runs-on: testhead
     steps:
       - uses: actions/checkout@v2
