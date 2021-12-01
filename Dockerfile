@@ -206,6 +206,7 @@ ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-${ZSDK_VERSION}
 ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
+ENV OVMF_FD_PATH=/usr/share/ovmf/OVMF.fd
 
 ENTRYPOINT ["/home/1rtosdev/entrypoint.sh"]
 CMD ["/bin/bash"]
