@@ -19,8 +19,7 @@ ENV NO_PROXY=$NOPROXY
 ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
-ARG ZSDK_VERSION=0.12.4
-ARG ZSDK_ALT_VERSION=0.13.1
+ARG ZSDK_VERSION=0.13.2
 ARG GCC_ARM_NAME=gcc-arm-none-eabi-10-2020-q4-major
 ARG CMAKE_VERSION=3.20.5
 ARG RENODE_VERSION=1.12.0
@@ -167,10 +166,6 @@ RUN cd /opt/bsim && \
 #	sh "zephyr-sdk-${ZSDK_VERSION}-x86_64-linux-setup.run" --quiet -- -d /opt/toolchains/zephyr-sdk-${ZSDK_VERSION} && \
 #	rm "zephyr-sdk-${ZSDK_VERSION}-x86_64-linux-setup.run"
 
-#RUN wget ${WGET_ARGS} https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZSDK_ALT_VERSION}/zephyr-sdk-${ZSDK_ALT_VERSION}-linux-x86_64-setup.run && \
-#	sh "zephyr-sdk-${ZSDK_ALT_VERSION}-linux-x86_64-setup.run" --quiet -- -d /opt/toolchains/zephyr-sdk-${ZSDK_ALT_VERSION} && \
-#	rm "zephyr-sdk-${ZSDK_ALT_VERSION}-linux-x86_64-setup.run"
-
 # Install github-cli per https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 RUN	apt update && apt install -y --no-install-recommends curl && \
 		curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -208,7 +203,7 @@ RUN chmod -R 755 /opt/1rtos
 
 # Set the locale
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-${ZSDK_ALT_VERSION}
+ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-${ZSDK_VERSION}
 ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
 
