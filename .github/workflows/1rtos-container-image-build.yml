@@ -1,3 +1,9 @@
+# 1rtos-container-image-build.yml
+# Container CD Workflow - PR Event
+#
+# Builds new main.stg container image from source & tags main.stg.
+# Runs Trivy CVS scan then ALL twister default test-cases on production infra
+#
 name: container-image-build
 concurrency: 1rtos_container_cd
 on:
@@ -7,6 +13,8 @@ on:
   workflow_dispatch:
 
 jobs:
+# Build container image from repo source, tagging with '.stg' to prevent conflicts.
+# This step runs on CI TestHead where most container dev/testing occurs
   buildAndStageImage:
     runs-on: testhead
     steps:
@@ -17,16 +25,32 @@ jobs:
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
           docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
         shell: bash
+# Run aquasecurity/trivy-action for CRITICAL & HIGH CVS
+  scanImage:
+    runs-on: testhead
+    needs: [ buildAndStageImage ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
+# now run twister, using the -B option along with matrix expansion to distribute workload
   runTwister:
     runs-on: uzdo128
-    needs: [ buildAndStageImage ]
+    needs: [ scanImage ]
     defaults:
       run:
         shell: bash
     container:
       image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+      options: --user root:root -v/opt/toolchains:/opt/toolchains
     strategy:
       matrix:
         batch: [1, 2, 3]
@@ -56,7 +80,7 @@ jobs:
 # For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
 # echo.
   OneRTOS-CI-Passed:
-    needs: [ buildAndStageImage, runTwister ]
+    needs: [ buildAndStageImage, scanImage, runTwister ]
     runs-on: testhead
     steps:
       - name: Post run steps

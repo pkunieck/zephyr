@@ -1,3 +1,11 @@
+# 1rtos-container-image-push.yml
+# Container CD Workflow - Push Event
+# 
+# Runs Trivy CVS scan then ALL twister default test-cases on production infra
+# If all tasks pass, main.stg is tagged -> main & pushed to registry.
+#
+# Expects main.stg image already exists on CI Test Head.
+#
 name: container-image-push
 concurrency: 1rtos_container_cd
 on:
@@ -6,26 +14,31 @@ on:
       - main-intel
 
 jobs:
-  buildAndStageImage: 
+# .stg container image is already built, scan & test once more, then push
+  scanImage:
     runs-on: testhead
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          set       
-          chmod 777 entrypoint.sh
-          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
-          docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
-        shell: bash
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
+# now run twister, using the -B option along with matrix expansion to distribute workload
   runTwister:
-    needs: [ buildAndStageImage ]
+    needs: [ scanImage ]
     defaults:
       run:
         shell: bash
     runs-on: uzdo128
     container:
       image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --privileged --user root:root -v/opt/toolchains:/opt/toolchains
+      options: --user root:root -v/opt/toolchains:/opt/toolchains
     strategy:
       matrix:
         batch: [1, 2, 3]
@@ -51,7 +64,7 @@ jobs:
           retention-days: 30              
 
   OneRTOS-CI-Passed:
-    needs: [ buildAndStageImage, runTwister ]
+    needs: [ scanImage, runTwister ]
     runs-on: testhead
     steps:
       - run: |
