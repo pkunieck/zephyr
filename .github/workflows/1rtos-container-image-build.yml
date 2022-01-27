@@ -25,8 +25,8 @@ jobs:
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
           docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
         shell: bash
-# Run aquasecurity/trivy-action for CRITICAL & HIGH CVS
-  scanImage:
+# Run aquasecurity/trivy-action for CRITICAL CVEs, will block CI
+  scanImageCritical:
     runs-on: testhead
     needs: [ buildAndStageImage ]
     steps:
@@ -39,12 +39,28 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
+
+# Run aquasecurity/trivy-action for HIGH CVEs, does not gate CI
+  scanImageHigh:
+    runs-on: testhead
+    needs: [ buildAndStageImage ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH'
 
 # now run twister, using the -B option along with matrix expansion to distribute workload
   runTwister:
     runs-on: uzdo128
-    needs: [ scanImage ]
+    needs: [ scanImageCritical ]
     defaults:
       run:
         shell: bash
@@ -80,7 +96,7 @@ jobs:
 # For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
 # echo.
   OneRTOS-CI-Passed:
-    needs: [ buildAndStageImage, scanImage, runTwister ]
+    needs: [ buildAndStageImage, scanImageCritical, runTwister ]
     runs-on: testhead
     steps:
       - name: Post run steps

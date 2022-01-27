@@ -27,7 +27,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
 
 # now run twister, using the -B option along with matrix expansion to distribute workload
   runTwister:

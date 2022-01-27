@@ -172,6 +172,10 @@ RUN	apt update && apt install -y --no-install-recommends curl && \
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
 		apt update && apt install gh
 
+# Support xcc compiler installed on NFS share
+RUN	apt update && apt install -y --no-install-recommends zlib1g:i386 libc6-i386 lib32ncurses6 lib32ncurses-dev
+ENV	XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
+
 RUN apt-get clean && \
 	sudo apt-get autoremove --purge
 
