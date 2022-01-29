@@ -14,38 +14,37 @@
 #	<batch#>    ($3) = which batch number am I
 #	<parallel#> ($4) = total number of parallel jobs
 #	<option-str>($5) = optional twister parameter to pass, typically used for "--integration"
+
+
 1rtos-ci() {
 	cd "$2/zephyrproject"
+    if [ -d zephyr-intel ]; then
+        # We are doing zephyr-intel"
+        export ZEPHYR_DIR="zephyr-intel"
+    else
+        export ZEPHYR_DIR="zephyr"
+    fi
 	if [ ! -d .west ]; then
-		west init -l zephyr
+		west init -l $ZEPHYR_DIR
 	fi
 	west update
 
-	export ZEPHYR_BASE="$2/zephyrproject/zephyr"
+    # This is same for both zephyr and zephyr-intel
+    export ZEPHYR_BASE="$2/zephyrproject/zephyr"
 	cd "$ZEPHYR_BASE"
 	
-	# set twister cmdline, injecting $5/option-str
-	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v $5" 
+    # quarantine list
+    if [ -f $2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list ]; then
+        QUARANTINE_FILE=$2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list
+        QUARANTINE_CMD=" --quarantine-list $QUARANTINE_FILE"
+    fi
 
-	# store all testcases
+	# set twister cmdline, injecting $5/option-str
+	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v $5 $QUARANTINE_CMD"
+
+    # store all testcases
 	$TWISTER_CMD --save-tests testcases
 	cp testcases testcases.0
-
-	# apply twisterSkipList if exists in container
-	if [ -f /opt/1rtos/twisterSkipList ]; then
-		. ./opt/1rtos/twisterSkipList
-		for tc in "${TWISTER_SKIP_LIST[@]}"; do
-			sed -i "\\#$tc#d" testcases
-		done
-	fi
-
-	# apply twisterSkipList if exists in repo
-	if [ -f .github/workflows/twisterSkipList ]; then
-		. .github/workflows/twisterSkipList
-		for tc in "${TWISTER_SKIP_LIST[@]}"; do
-			sed -i "\\#$tc#d" testcases
-		done
-	fi
 
 	# run twister with our standard options + injected batch/parallel & extra params
 	$TWISTER_CMD -B $3/$4 --load-tests testcases --retry-failed 3 --retry-interval 60
