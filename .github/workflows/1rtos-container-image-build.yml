@@ -1,9 +1,11 @@
 # 1rtos-container-image-build.yml
-# Container CD Workflow - PR Event
+# Container Image CD Workflow - PR Event
 #
-# Builds new main.stg container image from source & tags main.stg.
-# Runs Trivy CVS scan then ALL twister default test-cases on production infra
-#
+# 1. Builds new main.stg container image from source, tagging as 'main.stg'
+# 2. Scans new image for CRITICAL CVEs with Trivy and if passes, pushes to registry
+# 3. Verifies twister passes all default test-cases, executing on production builders
+# 4. Returns overall workflow status for PR check
+
 name: container-image-build
 concurrency: 1rtos_container_cd
 on:
@@ -13,60 +15,43 @@ on:
   workflow_dispatch:
 
 jobs:
-# Build container image from repo source, tagging with '.stg' to prevent conflicts.
-# This step runs on CI TestHead where most container dev/testing occurs
-  buildAndStageImage:
-    runs-on: testhead
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          set       
-          chmod 777 entrypoint.sh
-          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t 127.0.0.1:5000/sdk-docker-intel:main.stg .
-          docker push 127.0.0.1:5000/sdk-docker-intel:main.stg
+  buildScanAndStageImage:
+# Build container image from repo source, tagging with '.stg' to avoid conflicting with production
+#   This step can run on our 'uzdo-ubuntu-latest' VMs as the task is mostly downloading not compiling
+    runs-on: uzdo-ubuntu-latest-v1-rc
+    defaults:
+      run:
         shell: bash
-# Run aquasecurity/trivy-action for CRITICAL CVEs, will block CI
-  scanImageCritical:
-    runs-on: testhead
-    needs: [ buildAndStageImage ]
     steps:
       - uses: actions/checkout@v2
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: build new main.stg container image
+        run: |
+          chmod 777 entrypoint.sh
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg .
+      - name: CVE scan new main.stg image
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@add-actions
         with:
-          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL'
+          container-url: 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg'
+          cve-level: 'CRITICAL'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
+      - name: push main.stg container image to registry
+        run: |
+          docker login -u ${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}  -p ${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }} amr-registry.caas.intel.com && \
+          docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg && \
+          docker logout amr-registry.caas.intel.com
 
-# Run aquasecurity/trivy-action for HIGH CVEs, does not gate CI
-  scanImageHigh:
-    runs-on: testhead
-    needs: [ buildAndStageImage ]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'HIGH'
-
-# now run twister, using the -B option along with matrix expansion to distribute workload
+# Now run we verify new container functionality by running a full twister run on production infrastructure
+#   For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
   runTwister:
-    runs-on: uzdo128
-    needs: [ scanImageCritical ]
+    runs-on: uzdo-hpc-v1-rc
+    needs: [ buildScanAndStageImage ]
     defaults:
       run:
         shell: bash
     container:
-      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --user root:root -v/opt/toolchains:/opt/toolchains
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
+      options: -v/opt/toolchains:/opt/toolchains
     strategy:
       matrix:
         batch: [1, 2, 3]
@@ -89,15 +74,15 @@ jobs:
           path: |
             zephyrproject/zephyr/twister-out/twister.log
             zephyrproject/zephyr/twister-out/twister.xml
-          retention-days: 1               
+          retention-days: 1
 
 # "OneRTOS-CI-Passed" is our exit job that matches branch-protection status-check
 # settings for PR workflow. Make sure all required tests are prereqs to this job.
 # For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
 # echo.
   OneRTOS-CI-Passed:
-    needs: [ buildAndStageImage, scanImageCritical, runTwister ]
-    runs-on: testhead
+    needs: [ buildScanAndStageImage, runTwister ]
+    runs-on: uzdo-ubuntu-latest-v1-rc
     steps:
       - name: Post run steps
         run: echo "OneRTOS-CI-Passsed"
