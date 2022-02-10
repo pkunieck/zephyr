@@ -1,23 +1,20 @@
 # 1rtos-container-image-scan.yml
-# Container CVS Scanner ( dispatch Event )
+# Container CVE Scanner ( dispatch Event )
 #
-# Runs Trivy CVS scan for CRITICAL, HIGH & MEDIUM on main tag
+# Runs Trivy CVE scan for CRITICAL, HIGH & MEDIUM on main tag
 
 name: container-image-scan
 on:
   workflow_dispatch:
 
 jobs:
-  scanImage:
-    runs-on: testhead
+  cveScanImage:
+    runs-on: fmos-ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: CVE scan main.stg image before promoting
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
-          image-ref: '127.0.0.1:5000/sdk-docker-intel:main'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH,MEDIUM'
+          container-url: 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg'
+          cve-level: 'CRITICAL,HIGH,MEDIUM'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}

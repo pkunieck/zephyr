@@ -13,18 +13,19 @@ on:
 
 jobs:
   backport-1rtos:
-    runs-on: testhead
+    runs-on: fmos-ubuntu-latest
     strategy:
       matrix:
-        img: [ '127.0.0.1:5000/sdk-docker-intel' ]
+        img: [ 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel' ]
         tag: [v2.7-branch, v2.6-branch, v2.5-branch]
-
     steps:
       - uses: actions/checkout@v2
-      - name: 'Rebuild container latest apt update + fresh copy of /1rtos contents, then and push to registry.'
+      - name: 'Rebuild container latest apt update + fresh copy of /opt/1rtos contents, then and push to registry.'
         run: |
-            docker tag ${{ matrix.img }}:${{ matrix.tag }} ${{ matrix.img }}:${{ matrix.tag }}.last
-            echo -e 'FROM ${{ matrix.img }}:${{ matrix.tag }}\nARG HTTPPROXY=\nARG HTTPSPROXY=\nENV http_proxy=$HTTPPROXY\nENV https_proxy=$HTTPSPROXY\nUSER root\nRUN apt-get -y update && apt-get -y upgrade\nCOPY ./1rtos/* /opt/1rtos/\nUSER 1rtosdev' > Dockerfile
-            docker build --pull --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy -t ${{ matrix.img }}:${{ matrix.tag }} .
+            docker pull ${{ matrix.img }}:${{ matrix.tag }} && \
+            docker tag ${{ matrix.img }}:${{ matrix.tag }} ${{ matrix.img }}:${{ matrix.tag }}.last && \
+            docker push ${{ matrix.img }}:${{ matrix.tag }}.last && \
+            echo -e 'FROM ${{ matrix.img }}:${{ matrix.tag }}\nARG HTTPPROXY=\nARG HTTPSPROXY=\nENV http_proxy=$HTTPPROXY\nENV https_proxy=$HTTPSPROXY\nUSER root\nRUN apt-get -y update && apt-get -y upgrade\nCOPY ./1rtos/* /opt/1rtos/\nUSER 1rtosdev' > Dockerfile && \
+            docker build --pull --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy -t ${{ matrix.img }}:${{ matrix.tag }} . && \
             docker push ${{ matrix.img }}:${{ matrix.tag }}
         shell: bash

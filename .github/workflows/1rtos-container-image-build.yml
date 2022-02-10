@@ -17,8 +17,8 @@ on:
 jobs:
   buildScanAndStageImage:
 # Build container image from repo source, tagging with '.stg' to avoid conflicting with production
-#   This step can run on our 'uzdo-ubuntu-latest' VMs as the task is mostly downloading not compiling
-    runs-on: uzdo-ubuntu-latest-v1-rc
+#   This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
+    runs-on: fmos-ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -29,7 +29,7 @@ jobs:
           chmod 777 entrypoint.sh
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg .
       - name: CVE scan new main.stg image
-        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@add-actions
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
           container-url: 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg'
           cve-level: 'CRITICAL'
@@ -45,10 +45,10 @@ jobs:
 #   For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
   ciSelfTest:
     needs: buildScanAndStageImage
-    uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@add-actions
+    uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
     with:
       container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
-      runner: uzdo-hpc-v1-rc
+      runner: uzdo128
     secrets:
       token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
 
@@ -58,7 +58,7 @@ jobs:
 # echo.
   OneRTOS-CI-Passed:
     needs: [ buildScanAndStageImage, ciSelfTest ]
-    runs-on: uzdo-ubuntu-latest-v1-rc
+    runs-on: fmos-ubuntu-latest
     steps:
       - name: Post run steps
         run: echo "OneRTOS-CI-Passsed"

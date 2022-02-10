@@ -1,10 +1,9 @@
 # 1rtos-container-image-push.yml
 # Container CD Workflow - Push Event
 # 
-# Runs Trivy CVS scan then ALL twister default test-cases on production infra
-# If all tasks pass, main.stg is tagged -> main & pushed to registry.
+# Runs Trivy CVE scan & if passing main.stg is tagged -> main & pushed to registry.
 #
-# Expects main.stg image already exists on CI Test Head.
+# Expects main.stg image already built in registry
 #
 name: container-image-push
 concurrency: 1rtos_container_cd
@@ -14,62 +13,26 @@ on:
       - main-intel
 
 jobs:
-# .stg container image is already built, scan & test once more, then push
-  scanImage:
-    runs-on: testhead
+# .stg container image is already built, scan once more and then retag+push
+#   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
+  scanAndPromoteImage:
+    runs-on: fmos-ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: CVE scan main.stg image before promoting
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
-          image-ref: '127.0.0.1:5000/sdk-docker-intel:main.stg'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL'
-
-# now run twister, using the -B option along with matrix expansion to distribute workload
-  runTwister:
-    needs: [ scanImage ]
-    defaults:
-      run:
-        shell: bash
-    runs-on: uzdo128
-    container:
-      image: 192.168.0.200:5000/sdk-docker-intel:main.stg
-      options: --user root:root -v/opt/toolchains:/opt/toolchains
-    strategy:
-      matrix:
-        batch: [1, 2, 3]
-        batch_total: [ 3 ] 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          path: 'zephyrproject/zephyr'
-          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
-          ref: '1rtos-ci-self-test' 
-          token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
-      - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }}
-      - name: log artifacts
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: twisterLog_${{ matrix.batch }}of${{ matrix.batch_total }}
-          path: |
-            zephyrproject/zephyr/twister-out/twister.log
-            zephyrproject/zephyr/twister-out/twister.xml
-          retention-days: 30              
-
-  OneRTOS-CI-Passed:
-    needs: [ scanImage, runTwister ]
-    runs-on: testhead
-    steps:
-      - run: |
-            docker tag 127.0.0.1:5000/sdk-docker-intel:main 127.0.0.1:5000/sdk-docker-intel:main.last
-            docker tag 127.0.0.1:5000/sdk-docker-intel:main.stg 127.0.0.1:5000/sdk-docker-intel:main
-            docker push 127.0.0.1:5000/sdk-docker-intel:main
-            docker rmi 127.0.0.1:5000/sdk-docker-intel:main.stg
+          container-url: 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg'
+          cve-level: 'CRITICAL'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
+      - name: retag and push image to production registry
+        run: |
+            docker pull amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
+            docker tag amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.last && \
+            docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.last && \
+            docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
+            docker pull amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg && \
+            docker tag amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
+            docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
+            docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
         shell: bash
