@@ -43,45 +43,21 @@ jobs:
 
 # Now run we verify new container functionality by running a full twister run on production infrastructure
 #   For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
-  runTwister:
-    runs-on: uzdo-hpc-v1-rc
-    needs: [ buildScanAndStageImage ]
-    defaults:
-      run:
-        shell: bash
-    container:
-      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
-      options: -v/opt/toolchains:/opt/toolchains
-    strategy:
-      matrix:
-        batch: [1, 2, 3]
-        batch_total: [ 3 ] 
-    steps:
-      - name: checkout zephyr ci-self-test tag
-        uses: actions/checkout@v2
-        with:
-          path: 'zephyrproject/zephyr'
-          repository: 'intel-innersource/os.rtos.zephyr.zephyr.git'
-          ref: '1rtos-ci-self-test' 
-          token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
-      - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }}
-      - name: log artifacts
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: twisterLog_${{ matrix.batch }}of${{ matrix.batch_total }}
-          path: |
-            zephyrproject/zephyr/twister-out/twister.log
-            zephyrproject/zephyr/twister-out/twister.xml
-          retention-days: 1
+  ciSelfTest:
+    needs: buildScanAndStageImage
+    uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@add-actions
+    with:
+      container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
+      runner: uzdo-hpc-v1-rc
+    secrets:
+      token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
 
 # "OneRTOS-CI-Passed" is our exit job that matches branch-protection status-check
 # settings for PR workflow. Make sure all required tests are prereqs to this job.
 # For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
 # echo.
   OneRTOS-CI-Passed:
-    needs: [ buildScanAndStageImage, runTwister ]
+    needs: [ buildScanAndStageImage, ciSelfTest ]
     runs-on: uzdo-ubuntu-latest-v1-rc
     steps:
       - name: Post run steps
