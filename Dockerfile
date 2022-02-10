@@ -179,20 +179,8 @@ ENV	XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 RUN apt-get clean && \
 	sudo apt-get autoremove --purge
 
-RUN groupadd -g $GID -o 1rtosdev
-
-RUN useradd -u $UID -m -g 1rtosdev -G plugdev 1rtosdev \
-	&& echo '1rtosdev ALL = NOPASSWD: ALL' > /etc/sudoers.d/1rtosdev \
-	&& chmod 0440 /etc/sudoers.d/1rtosdev
-
-# pre-load ssh-key for gitlab @ Intel, required for automated, SSH-authenticated push/pulls
-RUN mkdir /home/1rtosdev/.ssh && \
-	ssh-keyscan -t rsa -p 29418 gitlab.devtools.intel.com > /home/1rtosdev/.ssh/known_hosts
-
-ADD ./entrypoint.sh /home/1rtosdev/entrypoint.sh
-RUN dos2unix /home/1rtosdev/entrypoint.sh
-
-RUN chown -R 1rtosdev:1rtosdev /home/1rtosdev
+ADD ./entrypoint.sh /entrypoint.sh
+RUN dos2unix /entrypoint.sh
 
 RUN wget ${WGET_ARGS} https://static.rust-lang.org/rustup/rustup-init.sh && \
 	chmod +x rustup-init.sh && \
@@ -211,8 +199,4 @@ ENV GNUARMEMB_TOOLCHAIN_PATH=/opt/toolchains/${GCC_ARM_NAME}
 ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
 ENV OVMF_FD_PATH=/usr/share/ovmf/OVMF.fd
 
-ENTRYPOINT ["/home/1rtosdev/entrypoint.sh"]
-CMD ["/bin/bash"]
-USER 1rtosdev
-WORKDIR /workdir
-VOLUME ["/workdir"]
+ENTRYPOINT ["/entrypoint.sh"]
