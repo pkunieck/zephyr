@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         img: [ 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel' ]
-        tag: [v2.7-branch, v2.6-branch, v2.5-branch]
+        tag: [v3.0-branch, v2.7-branch, v2.6-branch, v2.5-branch]
     steps:
       - uses: actions/checkout@v2
       - name: 'Rebuild container latest apt update + fresh copy of /opt/1rtos contents, then and push to registry.'
