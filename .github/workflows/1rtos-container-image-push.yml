@@ -27,12 +27,10 @@ jobs:
           dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
       - name: retag and push image to production registry
         run: |
-            docker pull amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
-            docker tag amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.last && \
-            docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.last && \
-            docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
+            docker login -u ${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}  -p ${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }} amr-registry.caas.intel.com && \
             docker pull amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg && \
             docker tag amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
             docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main && \
-            docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
+            docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg && \
+            docker logout amr-registry.caas.intel.com
         shell: bash
