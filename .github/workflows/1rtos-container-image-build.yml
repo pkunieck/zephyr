@@ -27,7 +27,8 @@ jobs:
       - name: build new main.stg container image
         run: |
           chmod 777 entrypoint.sh
-          docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
+          # Prevent pegging the registry with a pile up of images from rebuilds
+          docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg || true
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg .
       - name: CVE scan new main.stg image
         uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
