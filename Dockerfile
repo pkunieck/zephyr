@@ -19,13 +19,14 @@ ENV NO_PROXY=$NOPROXY
 ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
-ARG ZSDK_VERSION=0.14.2
+ARG ZSDK_VERSION=0.15.0
 ARG GCC_ARM_NAME=gcc-arm-none-eabi-10-2020-q4-major
 ARG DOXYGEN_VERSION=1.9.4
 ARG CMAKE_VERSION=3.20.5
-ARG RENODE_VERSION=1.12.0
+ARG RENODE_VERSION=1.13.0
 ARG LLVM_VERSION=12
 ARG BSIM_VERSION=v1.0.3
+ARG SPARSE_VERSION=9212270048c3bd23f56c20a83d4f89b870b2b26e
 ARG WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 
 ARG UID=1000
@@ -136,17 +137,18 @@ RUN if [ "${HOSTTYPE}" = "x86_64" ]; then \
 # Awscli requires docutils<0.17 (0.16) which breaks all kinds of things, so remove that
 # protobuf pinned to unbreak samples/modules/nanopb .proto stuff
 # Default six package is not high enough version for pyocd and others, so bump
-RUN pip3 install wheel pip -U && \
-    pip3 install -r https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements.txt && \
-    pip3 install -r https://raw.githubusercontent.com/zephyrproject-rtos/mcuboot/master/scripts/requirements.txt && \
-    pip3 install west &&\
-    pip3 install sh &&\
-    pip3 install PyGithub junitparser pylint \
-             statistics numpy \
-             imgtool \
-             protobuf \
-             GitPython && \
-    pip3 install --upgrade "protobuf<=3.19.0" "docutils==0.17" "six>=1.5.0" "jinja2>=3.0"    
+# These version issues are still present with latest upstream docker image. 
+RUN pip3 install wheel pip -U &&\
+	pip3 install -r https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements.txt && \
+	pip3 install -r https://raw.githubusercontent.com/zephyrproject-rtos/mcuboot/master/scripts/requirements.txt && \
+	pip3 install west &&\
+	pip3 install sh &&\
+	pip3 install PyGithub junitparser pylint \
+		     statistics numpy \
+		     imgtool \
+		     protobuf \
+                     GitPython && \
+        pip3 install --upgrade "protobuf<=3.19.0" "docutils==0.17" "six>=1.5.0" "jinja2>=3.0"
 
 RUN mkdir -p /opt/toolchains
 
@@ -207,6 +209,15 @@ RUN wget ${WGET_ARGS} -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key 
 	apt-get update && \
 	apt-get install -y clang-$LLVM_VERSION lldb-$LLVM_VERSION lld-$LLVM_VERSION clangd-$LLVM_VERSION llvm-$LLVM_VERSION-dev
 
+# Install sparse package for static analysis
+RUN mkdir -p /opt/sparse && \
+	cd /opt/sparse && \
+	git clone https://git.kernel.org/pub/scm/devel/sparse/sparse.git && \
+	cd sparse && git checkout ${SPARSE_VERSION} && \
+	make -j8 && \
+	PREFIX=/opt/sparse make install && \
+	rm -rf /opt/sparse/sparse
+	
 # Clean up stale packages
 RUN apt-get clean -y && \
 	apt-get autoremove --purge -y && \
