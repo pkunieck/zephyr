@@ -1,4 +1,4 @@
-# 1rtos-container-image-build.yml
+# fmos-container-image-build.yml
 # Container Image CD Workflow - PR Event
 #
 # 1. Builds new main.stg container image from source, tagging as 'main.stg'
@@ -7,12 +7,16 @@
 # 4. Returns overall workflow status for PR check
 
 name: container-image-build
-concurrency: 1rtos_container_cd
+concurrency: fmos_container_cd
 on:
   pull_request:
     branches:
       - main-intel
   workflow_dispatch:
+
+env:
+  registry: 'amr-registry.caas.intel.com'
+  project: 'zephyrproject'
 
 jobs:
   buildScanAndStageImage:
@@ -27,21 +31,25 @@ jobs:
       - name: build new main.stg container image
         run: |
           chmod 777 entrypoint.sh
-          # Prevent pegging the registry with a pile up of images from rebuilds
-          docker rmi amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg || true
-          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy -t amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg .
+          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' || true
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
+            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' .
       - name: CVE scan new main.stg image
         uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
-          container-url: 'amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg'
+          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
           cve-level: 'CRITICAL'
-          dockerio-user: ${{ secrets.DOCKERIO_USER }}
-          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
       - name: push main.stg container image to registry
         run: |
-          docker login -u ${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}  -p ${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }} amr-registry.caas.intel.com && \
-          docker push amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg && \
-          docker logout amr-registry.caas.intel.com
+          echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
+          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
+      - name: registry logout
+        if: ${{ always() }}
+        run: |
+          docker logout ${{ env.registry }}
+          docker logout
+          true
 
 # Now run we verify new container functionality by running a full twister run on production infrastructure
 #   For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
@@ -58,9 +66,9 @@ jobs:
 # settings for PR workflow. Make sure all required tests are prereqs to this job.
 # For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
 # echo.
-  OneRTOS-CI-Passed:
+  ciSelfTestPassed:
     needs: [ buildScanAndStageImage, ciSelfTest ]
     runs-on: fmos-ubuntu-latest
     steps:
       - name: Post run steps
-        run: echo "OneRTOS-CI-Passsed"
+        run: echo "ciSelfTest Passed"

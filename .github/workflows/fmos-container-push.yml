@@ -1,0 +1,43 @@
+# 1rtos-container-image-push.yml
+# Container CD Workflow - Push Event
+# 
+# Runs Trivy CVE scan & if passing main.stg is tagged -> main & pushed to registry.
+#
+# Expects main.stg image already built in registry
+#
+name: container-image-push
+concurrency: fmos_container_cd
+on:
+  push:
+    branches:
+      - main-intel
+      
+env:
+  registry: 'amr-registry.caas.intel.com'
+  project: 'zephyrproject'
+
+jobs:
+# .stg container image is already built, scan once more and then retag+push
+#   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
+  scanAndPromoteImage:
+    runs-on: fmos-ubuntu-latest
+    steps:
+      - name: CVE scan main.stg image before promoting
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
+        with:
+          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
+          cve-level: 'CRITICAL'
+      - name: retag and login+push image to production registry
+        run: |
+            echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
+            docker pull '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' && \
+            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main' && \
+            docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main' && \
+            docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
+        shell: bash
+      - name: registry logout
+        if: ${{ always() }}
+        run: |
+          docker logout ${{ env.registry }}
+          docker logout
+          true
