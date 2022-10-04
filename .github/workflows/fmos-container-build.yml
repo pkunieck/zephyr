@@ -12,6 +12,8 @@ on:
   pull_request:
     branches:
       - main-intel
+  schedule:
+    - cron:  '00 03 * * 0'
   workflow_dispatch:
 
 env:

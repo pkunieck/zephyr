@@ -11,6 +11,5 @@
 # add others as needed.
 
 # Do not use wildcard on all source yet
-*                                         @chrisvintc
-/.github/                                 @chrisvintc
-/1rtos/                                   @chrisvintc
+*                                         @chrisvintc @cjgraydon @cgturner1
+/.github/                                 @chrisvintc @cjgraydon @cgturner1
