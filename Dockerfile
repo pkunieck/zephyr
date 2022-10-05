@@ -190,7 +190,7 @@ RUN	apt update && apt install -y --no-install-recommends curl && \
 		apt update && apt install gh
 
 # Support xcc compiler installed on NFS share
-RUN	apt update && apt install -y --no-install-recommends zlib1g:i386 libc6-i386 lib32ncurses6 lib32ncurses-dev libcrypt1:i386 libncurses5:i386
+RUN	apt update && apt install -y --no-install-recommends zlib1g:i386 libc6-i386 lib32ncurses6 lib32ncurses-dev libcrypt1:i386 libncurses5:i386 libcrypt1:amd64
 ENV	XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 
 ADD ./entrypoint.sh /entrypoint.sh
