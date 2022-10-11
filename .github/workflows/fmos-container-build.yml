@@ -1,7 +1,7 @@
 # fmos-container-image-build.yml
 # Container Image CD Workflow - PR Event
 #
-# 1. Builds new main.stg container image from source, tagging as 'main.stg'
+# 1. Builds new container image from source, tagging as '<branch>.stg'
 # 2. Scans new image for CRITICAL CVEs with Trivy and if passes, pushes to registry
 # 3. Verifies twister passes all default test-cases, executing on production builders
 # 4. Returns overall workflow status for PR check
@@ -12,8 +12,7 @@ on:
   pull_request:
     branches:
       - main-intel
-  schedule:
-    - cron:  '00 03 * * 0'
+      - main-intel-22.04
   workflow_dispatch:
 
 env:
@@ -30,22 +29,22 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-      - name: build new main.stg container image
+      - name: build new container image
         run: |
           chmod 777 entrypoint.sh
           docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' || true
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
-            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' .
+            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' .
       - name: CVE scan new main.stg image
         uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
-          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
+          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
           cve-level: 'CRITICAL'
       - name: push main.stg container image to registry
         run: |
           echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
-          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg'
+          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
       - name: registry logout
         if: ${{ always() }}
         run: |
@@ -59,18 +58,27 @@ jobs:
     needs: buildScanAndStageImage
     uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
     with:
-      container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main.stg
+      container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:${{ github.base_ref }}.stg
       runner: uzdo128
     secrets:
       token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
 
-# "OneRTOS-CI-Passed" is our exit job that matches branch-protection status-check
+# "ciSelfTestPassed" is our exit job that matches branch-protection status-check
 # settings for PR workflow. Make sure all required tests are prereqs to this job.
-# For this build workflow, no actions are taken by OneRTOS-CI-Passed, just status
-# echo.
   ciSelfTestPassed:
     needs: [ buildScanAndStageImage, ciSelfTest ]
     runs-on: fmos-ubuntu-latest
     steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Publish Unit Test Results
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
+        with:
+          files: "artifacts/**/twister.xml"
+          check_name: "GCC Twister Results"
+          comment_mode: off
+          compare_to_earlier_commit: false
       - name: Post run steps
         run: echo "ciSelfTest Passed"
