@@ -53,7 +53,9 @@ RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz 
 	sed -i 's/^INSTALL_DIR=$HOME\/xtensa\/XtDevTools\/install/INSTALL_DIR=\/opt\/toolchains\/xcc\/install/' install.sh && \
 	./install.sh && \
 	cd .. && \
-	rm -rf xtensa-dist
+	rm -rf xtensa-dist && \
+	rm -fr /opt/toolchains/xcc/install/*/RG-2019.12-linux && \
+	rm -fr /opt/toolchains/xcc/install/*/RI-2020.5-linux
 
 # Clean up stale packages
 RUN apt-get clean -y && \
