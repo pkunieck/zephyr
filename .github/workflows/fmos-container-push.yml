@@ -21,7 +21,7 @@ jobs:
 # .stg container image is already built, scan once more and then retag+push
 #   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
   scanAndPromoteImage:
-    runs-on: fmos-ubuntu-latest
+    runs-on: zephyr-ubuntu-vm
     if: ${{ github.event_name == 'pull_request' }}
     defaults:
       run:

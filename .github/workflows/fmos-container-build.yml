@@ -23,7 +23,7 @@ jobs:
   buildScanAndStageImage:
 # Build container image from repo source, tagging with '.stg' to avoid conflicting with production
 #   This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
-    runs-on: fmos-ubuntu-latest
+    runs-on: zephyr-ubuntu-vm
     defaults:
       run:
         shell: bash
@@ -59,7 +59,7 @@ jobs:
     uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
     with:
       container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:${{ github.base_ref }}.stg
-      runner: uzdo128
+      runner: zephyr-ubuntu-vm
     secrets:
       token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
 
@@ -67,7 +67,7 @@ jobs:
 # settings for PR workflow. Make sure all required tests are prereqs to this job.
   ciSelfTestPassed:
     needs: [ buildScanAndStageImage, ciSelfTest ]
-    runs-on: fmos-ubuntu-latest
+    runs-on: zephyr-ubuntu-vm
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v2
