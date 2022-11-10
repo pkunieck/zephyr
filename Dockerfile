@@ -57,6 +57,11 @@ RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz 
 	rm -fr /opt/toolchains/xcc/install/*/RG-2019.12-linux && \
 	rm -fr /opt/toolchains/xcc/install/*/RI-2020.5-linux
 
+# Install NSIM
+RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/nsim_free.tgz && \
+	tar xf nsim_free.tgz -C /opt && \
+	rm nsim_free.tgz
+
 # Clean up stale packages
 RUN apt-get clean -y && \
 	apt-get autoremove --purge -y && \
