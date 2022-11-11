@@ -59,7 +59,7 @@ jobs:
     uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
     with:
       container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:${{ github.base_ref }}.stg
-      runner: zephyr-ubuntu-vm
+      runner: uzdo128
     secrets:
       token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
 
