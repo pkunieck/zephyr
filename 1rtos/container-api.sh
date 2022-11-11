@@ -18,31 +18,31 @@
 
 1rtos-ci() {
 	cd "$2/zephyrproject"
-    if [ -d zephyr-intel ]; then
-        # We are doing zephyr-intel"
-        export ZEPHYR_DIR="zephyr-intel"
-    else
-        export ZEPHYR_DIR="zephyr"
-    fi
+	if [ -d zephyr-intel ]; then
+		# We are doing zephyr-intel"
+		export ZEPHYR_DIR="zephyr-intel"
+	else
+		export ZEPHYR_DIR="zephyr"
+	fi
 	if [ ! -d .west ]; then
 		west init -l $ZEPHYR_DIR
 	fi
 	west update
 
-    # This is same for both zephyr and zephyr-intel
-    export ZEPHYR_BASE="$2/zephyrproject/zephyr"
+	# This is same for both zephyr and zephyr-intel
+	export ZEPHYR_BASE="$2/zephyrproject/zephyr"
 	cd "$ZEPHYR_BASE"
-	
-    # quarantine list
-    if [ -f $2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list ]; then
-        QUARANTINE_FILE=$2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list
-        QUARANTINE_CMD=" --quarantine-list $QUARANTINE_FILE"
-    fi
+
+	# quarantine list
+	if [ -f $2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list ]; then
+		QUARANTINE_FILE=$2/zephyrproject/$ZEPHYR_DIR/.github/workflows/twister-quarantine-list
+		QUARANTINE_CMD=" --quarantine-list $QUARANTINE_FILE"
+	fi
 
 	# set twister cmdline, injecting $5/option-str
 	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v $5 $QUARANTINE_CMD"
 
-    # store all testcases
+	# store all testcases
 	$TWISTER_CMD --save-tests testcases
 	cp testcases testcases.0
 
