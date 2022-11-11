@@ -22,7 +22,6 @@ jobs:
 #   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
   scanAndPromoteImage:
     runs-on: zephyr-ubuntu-vm
-    if: ${{ github.event_name == 'pull_request' }}
     defaults:
       run:
         shell: bash
