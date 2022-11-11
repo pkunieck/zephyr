@@ -40,7 +40,7 @@
 	fi
 
 	# set twister cmdline, injecting $5/option-str
-	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v $5 $QUARANTINE_CMD"
+	TWISTER_CMD="scripts/twister -M -x=USE_CCACHE=0 -N --inline-logs -v -T tests/kernel/common $5 $QUARANTINE_CMD"
 
 	# store all testcases
 	$TWISTER_CMD --save-tests testcases
