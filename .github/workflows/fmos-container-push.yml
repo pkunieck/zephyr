@@ -29,30 +29,30 @@ jobs:
       - name: login & pull latest staging image from Intel CaaS
         run: |
           echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
-          docker pull '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
+          docker pull '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
 
       - name: CVE scan main.stg image before promoting
         uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
         with:
-          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
+          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
           cve-level: 'CRITICAL'
 
       - name: retag then push image to Intel CaaS registry
         run: |
-            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}' && \
-            docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}'
+            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}' && \
+            docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}'
 
       - name: provide main tag alias for main-intel branch
-        if: success() && github.base_ref == 'main-intel'
+        if: success() && github.ref_name == 'main-intel'
         run: |
-            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main' && \
+            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main' && \
             docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main'
 
       - name: clean container images, registry logout
         if: ${{ always() }}
         run: |
-          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
-          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}'
+          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
+          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}'
           docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main'
           docker logout ${{ env.registry }}
           docker logout
