@@ -73,7 +73,7 @@ RUN git clone https://github.com/DediProgSW/SF100Linux && \
 
 # Install additional pre-built tools:
 # - mec172 SPI image builder
-COPY ./tools /opt
+COPY ./tools /opt/tools
 
 
 # Install NSIM
