@@ -67,6 +67,7 @@ RUN find /opt/toolchains -name html | xargs rm -rf
 # Install SF100 (Dediprog)
 RUN git clone https://github.com/DediProgSW/SF100Linux && \
 	cd SF100Linux && \
+	git checkout c76e10f03ab758b1dce1c54e586a7a14fbcf298a && \
 	make && \
 	mkdir -p /etc/udev/rules.d && \
 	make install
