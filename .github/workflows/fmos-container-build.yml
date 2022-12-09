@@ -33,6 +33,13 @@ jobs:
         run: |
           chmod 777 entrypoint.sh
           docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' || true
+          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:main.stg' || true
+          # lite ci image
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            -f Dockerfile.lite \
+            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
+            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg' .
+          # main ci image
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
             -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' .
@@ -44,7 +51,10 @@ jobs:
       - name: push main.stg container image to registry
         run: |
           echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
+
           docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
+
+          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg'
       - name: registry logout
         if: ${{ always() }}
         run: |

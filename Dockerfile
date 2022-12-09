@@ -41,11 +41,12 @@ RUN apt-get install -y --no-install-recommends curl && \
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
 		apt update && apt install gh
 
-# Support xcc compiler
+# Add more packages needed for additional tools
+# - Support xcc compiler
 # - libncurses5:amd64 needed for nsim simulator
 RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 	lib32ncurses6 lib32ncurses-dev libcrypt1:i386 libncurses5:i386 libcrypt1:amd64 \
-	libtinfo5 libncursesw5 libncurses5:amd64
+	libtinfo5 libncursesw5 libncurses5:amd64 libusb-1.0-0-dev
 ENV	XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 
 # Install XCC
@@ -60,6 +61,21 @@ RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz 
 	rm -fr /opt/toolchains/xcc/install/*/RG-2019.12-linux && \
 	rm -fr /opt/toolchains/xcc/install/*/RI-2020.5-linux
 
+# Delete all HTML & PDF files
+RUN find /opt/toolchains -name html | xargs rm -rf
+
+# Install SF100 (Dediprog)
+RUN git clone https://github.com/DediProgSW/SF100Linux && \
+	cd SF100Linux && \
+	make && \
+	mkdir -p /etc/udev/rules.d && \
+	make install
+
+# Install additional pre-built tools:
+# - mec172 SPI image builder
+COPY ./tools /opt
+
+
 # Install NSIM
 RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/nsim_free.tgz && \
 	tar xf nsim_free.tgz -C /opt && \
@@ -69,9 +85,6 @@ RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/nsim_free.tgz && \
 RUN apt-get clean -y && \
 	apt-get autoremove --purge -y && \
 	rm -rf /var/lib/apt/lists/*
-
-# create container /opt/1rtos directory from repo 1rtos directory
-COPY ./1rtos/* /opt/1rtos/
 
 ADD ./entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh

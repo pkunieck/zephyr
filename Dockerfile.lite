@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.5
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.24.7
 
 # proxy args set/override at build stage like this:
 #   docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
@@ -12,6 +12,7 @@ ARG NOPROXY=
 # Incorporate proxy settings- these affect the running container ONLY.
 # If you're having issues with the docker build behind a proxy, make sure the docker daemon is configured for proxy access:
 # https://docs.docker.com/network/proxy/
+
 ENV no_proxy=$NOPROXY
 ENV http_proxy=$HTTPPROXY
 ENV https_proxy=$HTTPSPROXY
@@ -40,6 +41,21 @@ RUN apt-get install -y --no-install-recommends curl && \
 		curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
 		apt update && apt install gh
+
+# Additional packages needed for tools
+RUN	apt install -y --no-install-recommends libusb-1.0-0-dev
+
+# Install SF100 (Dediprog)
+RUN git clone https://github.com/DediProgSW/SF100Linux && \
+	cd SF100Linux && \
+	make && \
+	mkdir -p /etc/udev/rules.d && \
+	make install
+
+# Install additional pre-built tools:
+# - mec172 SPI image builder
+COPY ./tools /opt
+
 
 # Install NSIM
 RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/nsim_free.tgz && \
