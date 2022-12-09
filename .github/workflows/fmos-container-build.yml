@@ -21,8 +21,8 @@ env:
 
 jobs:
   buildScanAndStageImage:
-# Build container image from repo source, tagging with '.stg' to avoid conflicting with production
-#   This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
+    # Build container image from repo source, tagging with '.stg' to avoid conflicting with production
+    # This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
     runs-on: zephyr-ubuntu-vm
     defaults:
       run:
@@ -62,8 +62,8 @@ jobs:
           docker logout
           true
 
-# Now run we verify new container functionality by running a full twister run on production infrastructure
-#   For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
+   # Now run we verify new container functionality by running a full twister run on production infrastructure
+   # For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
   ciSelfTest:
     needs: buildScanAndStageImage
     uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
