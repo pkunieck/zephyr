@@ -88,6 +88,7 @@ RUN apt-get clean -y && \
 
 ADD ./entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh
+RUN usermod -a -G dialout user
 
 ENTRYPOINT ["/entrypoint.sh"]
 
