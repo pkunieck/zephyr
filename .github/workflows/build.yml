@@ -1,33 +1,81 @@
-# Copyright (c) 2020 Linaro Limited.
-# SPDX-License-Identifier: Apache-2.0
+name: container-image-build
+concurrency: fmos_container_cd
 
-# Git Hub workflow to build docker container on PR to make sure
-# any changes to the container still produce a work container
-
-name: Docker Image CI
-
-on: [pull_request]
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
-  DOCKER_USER: zephyrprojectrtos
-  DOCKER_REPO: ci
-  DOCKER_REPO2: zephyr-build
+  registry: 'amr-registry.caas.intel.com'
+  project: 'zephyrproject'
 
 jobs:
-
-  build:
-    runs-on: ubuntu-latest
-    if: github.repository == 'zephyrproject-rtos/docker-image'
+  buildScanAndStageImage:
+    # Build container image from repo source, tagging with '.stg' to avoid conflicting with production
+    # This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
+    runs-on: zephyr-ubuntu-vm
+    defaults:
+      run:
+        shell: bash
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - name: build new container image
+        run: |
+          chmod 777 entrypoint.sh
+          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' || true
+          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:main.stg' || true
+          # lite ci image
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            -f Dockerfile.lite \
+            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
+            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg' .
+          # main ci image
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
+            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' .
+      - name: push main.stg container image to registry
+        run: |
+          echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
 
-    - name: Build the Docker image
-      run: |
-        df -h
-        # remove a few things to free up space
-        sudo rm -rf "/usr/local/share/boost"
-        sudo rm -rf "/usr/local/lib/android"
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        df -h
-        docker build . --file Dockerfile --tag docker.io/${DOCKER_USER}/${DOCKER_REPO}:${{ github.sha }}
-        docker build . --build-arg FROM_TAG=${{ github.sha }} --file Dockerfile.user --tag docker.io/${DOCKER_USER}/${DOCKER_REPO2}:latest
+          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
+
+          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg'
+      - name: registry logout
+        if: ${{ always() }}
+        run: |
+          docker logout ${{ env.registry }}
+          docker logout
+          true
+
+   # Now run we verify new container functionality by running a full twister run on production infrastructure
+   # For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
+  ciSelfTest:
+    needs: buildScanAndStageImage
+    uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
+    with:
+      container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:${{ github.base_ref }}.stg
+      runner: uzdo128
+    secrets:
+      token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
+
+# "ciSelfTestPassed" is our exit job that matches branch-protection status-check
+# settings for PR workflow. Make sure all required tests are prereqs to this job.
+  ciSelfTestPassed:
+    needs: [ buildScanAndStageImage, ciSelfTest ]
+    runs-on: zephyr-ubuntu-vm
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Publish Unit Test Results
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
+        with:
+          files: "artifacts/**/twister.xml"
+          check_name: "GCC Twister Results"
+          comment_mode: off
+          compare_to_earlier_commit: false
+      - name: Post run steps
+        run: echo "ciSelfTest Passed"

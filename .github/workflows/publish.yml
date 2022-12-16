@@ -1,59 +1,58 @@
-# Copyright (c) 2020 Linaro Limited.
-# SPDX-License-Identifier: Apache-2.0
-
-# Git Hub workflow to publish a container to docker hub
-# This only happens on commits or tags.
-
-name: Docker Publish
-
-on: [push]
-
+# 1rtos-container-image-push.yml
+# Container CD Workflow - Push Event
+# 
+# Runs Trivy CVE scan & if passing main.stg is tagged -> main & pushed to registry.
+#
+# Expects main.stg image already built in registry
+#
+name: container-image-push
+concurrency: fmos_container_cd
+on:
+  push:
+    branches:
+      - main
+      
 env:
-  DOCKER_USER: zephyrprojectrtos
-  DOCKER_REPO: ci
-  DOCKER_REPO2: zephyr-build
+  registry: 'amr-registry.caas.intel.com'
+  project: 'zephyrproject'
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    if: github.repository == 'zephyrproject-rtos/docker-image'
+# .stg container image is already built, scan once more and then retag+push
+#   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
+  scanAndPromoteImage:
+    runs-on: zephyr-ubuntu-vm
+    defaults:
+      run:
+        shell: bash
     steps:
-    - name: Docker Tag
-      id: docker_tag
-      run: |
-        # If push due to a normal commit to master GITHUB_REF will look like
-        # refs/heads/master convert that to 'latest'
-        if [ ${GITHUB_REF} == "refs/heads/master" ]; then
-           echo ::set-output name=DOCKER_TAG::latest;
-        else
-           # If push due to a tag GITHUB_REF will look like refs/tags/TAG-FOO
-           # chop of 'refs/tags' so DOCKER_TAG=TAG-FOO
-           echo ::set-output name=DOCKER_TAG::${GITHUB_REF/refs\/tags\//};
-        fi
+      - name: login & pull latest staging image from Intel CaaS
+        run: |
+          echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
+          docker pull '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
 
-    - uses: azure/docker-login@v1
-      with:
-        username: ${{ env.DOCKER_USER }}
-        password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: CVE scan main.stg image before promoting
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
+        with:
+          container-url: '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
+          cve-level: 'CRITICAL'
 
-    - uses: actions/checkout@v2
+      - name: retag then push image to Intel CaaS registry
+        run: |
+            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}' && \
+            docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}'
 
-    - name: build
-      env:
-        DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
-      run: |
-        df -h
-        # remove a few things to free up space
-        sudo rm -rf "/usr/local/share/boost"
-        sudo rm -rf "/usr/local/lib/android"
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        df -h
-        docker build . --file Dockerfile --tag docker.io/${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}
-        docker build . --file Dockerfile.user --build-arg FROM_TAG=${DOCKER_TAG} --tag docker.io/${DOCKER_USER}/${DOCKER_REPO2}:${DOCKER_TAG}
+      - name: provide main tag alias for main-intel branch
+        if: success() && github.ref_name == 'main-intel'
+        run: |
+            docker tag  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg' '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main' && \
+            docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main'
 
-    - name: push
-      env:
-        DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
-      run: |
-        docker push docker.io/${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}
-        docker push docker.io/${DOCKER_USER}/${DOCKER_REPO2}:${DOCKER_TAG}
+      - name: clean container images, registry logout
+        if: ${{ always() }}
+        run: |
+          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}.stg'
+          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.ref_name }}'
+          docker rmi  '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main'
+          docker logout ${{ env.registry }}
+          docker logout
+          true
