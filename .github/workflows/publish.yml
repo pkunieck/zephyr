@@ -1,10 +1,3 @@
-# 1rtos-container-image-push.yml
-# Container CD Workflow - Push Event
-# 
-# Runs Trivy CVE scan & if passing main.stg is tagged -> main & pushed to registry.
-#
-# Expects main.stg image already built in registry
-#
 name: container-image-push
 concurrency: fmos_container_cd
 on:
@@ -17,8 +10,6 @@ env:
   project: 'zephyrproject'
 
 jobs:
-# .stg container image is already built, scan once more and then retag+push
-#   This step can run on our 'uzdo-ubuntu-latest' VMs - task only involves container registry push/pull
   scanAndPromoteImage:
     runs-on: zephyr-ubuntu-vm
     defaults:

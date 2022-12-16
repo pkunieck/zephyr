@@ -1,17 +1,17 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.7
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8
 
-#proxy args set/override at build stage like this:
-#   docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
+# proxy args set/override at build stage like this:
+# docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
 ARG HTTPPROXY=
 ARG HTTPSPROXY=
 ARG NOPROXY=
-#NOTE: The formatting of the proxy string is important, it must be:
+# NOTE: The formatting of the proxy string is important, it must be:
 #     'http://<proxy.url>:<proxy.port'
 # otherwise the awk-based proxy.xml writer (below) will fail
 
-#Incorporate proxy settings- these affect the running container ONLY.
-#If you're having issues with the docker build behind a proxy, make sure the docker daemon is configured for proxy access:
-#https://docs.docker.com/network/proxy/
+# Incorporate proxy settings- these affect the running container ONLY.
+# If you're having issues with the docker build behind a proxy, make sure the docker daemon is configured for proxy access:
+# https://docs.docker.com/network/proxy/
 ENV no_proxy=$NOPROXY
 ENV http_proxy=$HTTPPROXY
 ENV https_proxy=$HTTPSPROXY

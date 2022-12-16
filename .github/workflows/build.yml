@@ -1,7 +1,14 @@
 name: container-image-build
-concurrency: fmos_container_cd
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 on:
+  push:
+    branches:
+    - main
+    tags:
+    - v*
   pull_request:
     branches:
       - main
@@ -12,36 +19,69 @@ env:
   project: 'zephyrproject'
 
 jobs:
-  buildScanAndStageImage:
-    # Build container image from repo source, tagging with '.stg' to avoid conflicting with production
-    # This step can run on our 'fmos-ubuntu-latest' VMs as the task is mostly downloading not compiling
-    runs-on: zephyr-ubuntu-vm
+  build:
+    runs-on: uzdo128
     defaults:
       run:
         shell: bash
     steps:
+      - name: Docker Tag
+        id: docker_tag
+        run: |
+          echo ${{ github.event_name }}
+          # If push due to a normal commit to main GITHUB_REF will look like
+          # refs/heads/master convert that to 'latest'
+          if [ ${GITHUB_REF} == "refs/heads/main" ]; then
+            echo ::set-output name=DOCKER_TAG::latest;
+          elif [ ${{ github.event_name }} == 'pull_request' ]; then
+            echo ::set-output name=DOCKER_TAG::${{github.event.pull_request.number}};
+          else
+            # If push due to a tag GITHUB_REF will look like refs/tags/TAG-FOO
+            # chop of 'refs/tags' so DOCKER_TAG=TAG-FOO
+            echo ::set-output name=DOCKER_TAG::${GITHUB_REF/refs\/tags\//};
+          fi
       - uses: actions/checkout@v2
-      - name: build new container image
+      - name: build lite container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           chmod 777 entrypoint.sh
-          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:main.stg' || true
-          docker rmi '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:main.stg' || true
-          # lite ci image
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             -f Dockerfile.lite \
-            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
-            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg' .
-          # main ci image
-          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-            --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy \
-            -t '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg' .
-      - name: push main.stg container image to registry
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            -t ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG} .
+      - name: build main container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
-          echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}' --password-stdin ${{ env.registry }} && \
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            -t ${{ env.registry }}/${{ env.project }}/ci-sdk:${DOCKER_TAG} .
+      - name: login into caas
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo '${{ secrets.CAAS_PRODUCTION_BOT_PASSWD }}' | \
+          docker login -u '${{ secrets.CAAS_PRODUCTION_BOT_USERNAME }}'  \
+            --password-stdin ${{ env.registry }}
 
-          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel:${{ github.base_ref }}.stg'
+      - name: push lite image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG}
 
-          docker push '${{ env.registry }}/${{ env.project }}/sdk-docker-intel-lite:${{ github.base_ref }}.stg'
+      - name: push main image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-sdk:${DOCKER_TAG}
+
       - name: registry logout
         if: ${{ always() }}
         run: |
@@ -49,33 +89,3 @@ jobs:
           docker logout
           true
 
-   # Now run we verify new container functionality by running a full twister run on production infrastructure
-   # For fastest execution, we parallel execute these compute-intensive steps on our 'uzdo-hpc' build farm
-  ciSelfTest:
-    needs: buildScanAndStageImage
-    uses: intel-innersource/os.rtos.zephyr.devops.ci/.github/workflows/fmos-ci-self-test.yml@main
-    with:
-      container: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:${{ github.base_ref }}.stg
-      runner: uzdo128
-    secrets:
-      token: ${{ secrets.PAT_SYS_TMBUILD_SDK_DOCKER_INTEL }}
-
-# "ciSelfTestPassed" is our exit job that matches branch-protection status-check
-# settings for PR workflow. Make sure all required tests are prereqs to this job.
-  ciSelfTestPassed:
-    needs: [ buildScanAndStageImage, ciSelfTest ]
-    runs-on: zephyr-ubuntu-vm
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-      - name: Publish Unit Test Results
-        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
-        with:
-          files: "artifacts/**/twister.xml"
-          check_name: "GCC Twister Results"
-          comment_mode: off
-          compare_to_earlier_commit: false
-      - name: Post run steps
-        run: echo "ciSelfTest Passed"
