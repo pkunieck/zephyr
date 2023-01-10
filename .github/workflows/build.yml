@@ -52,6 +52,17 @@ jobs:
             --build-arg HTTPSPROXY=$https_proxy \
             --build-arg NOPROXY=$no_proxy \
             -t ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG} .
+      - name: build XCC container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        run: |
+          chmod 777 entrypoint.sh
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            -f Dockerfile.xcc \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
       - name: build main container image
         env:
           DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
@@ -74,6 +85,13 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           docker push ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG}
+
+      - name: push XCC image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG}
 
       - name: push main image
         env:
