@@ -64,6 +64,17 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
+      - name: build Coverity container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        run: |
+          chmod 777 entrypoint.sh
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            -f Dockerfile.coverity \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG} .
       - name: build main container image
         env:
           DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
@@ -93,6 +104,13 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           docker push ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG}
+
+      - name: push Coverity image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG}
 
       - name: push main image
         env:
