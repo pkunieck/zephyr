@@ -62,6 +62,7 @@ jobs:
             --build-arg HTTPPROXY=$http_proxy \
             --build-arg HTTPSPROXY=$https_proxy \
             --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
       - name: build main container image
         env:
