@@ -20,7 +20,7 @@ env:
 
 jobs:
   build:
-    runs-on: uzdo128
+    runs-on: fmos-guest-ubuntu-12c
     defaults:
       run:
         shell: bash
