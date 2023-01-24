@@ -50,16 +50,15 @@ RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 ENV	XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 
 # Install XCC
-RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz && \
-	tar xf xtensa-dist.tar.gz  && \
-	rm xtensa-dist.tar.gz && \
-	cd xtensa-dist && \
-	sed -i 's/^INSTALL_DIR=$HOME\/xtensa\/XtDevTools\/install/INSTALL_DIR=\/opt\/toolchains\/xcc\/install/' install.sh && \
-	./install.sh && \
-	cd .. && \
-	rm -rf xtensa-dist && \
-	rm -fr /opt/toolchains/xcc/install/*/RG-2019.12-linux && \
-	rm -fr /opt/toolchains/xcc/install/*/RI-2020.5-linux
+ARG ARTIFACTORY_API_KEY=
+RUN mkdir xcc && cd xcc && \
+    wget ${WGET_ARGS} --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/install.sh && \
+    chmod a+x install.sh && \
+    wget ${WGET_ARGS} -nd -P RG-2017.8 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RG-2017.8/ && \
+    wget ${WGET_ARGS} -nd -P RI-2021.7 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RI-2021.7/ && \
+    wget ${WGET_ARGS} -nd -P RI-2022.10 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RI-2022.10/ && \
+    ./install.sh /opt/toolchains/xcc && \
+    cd .. && rm -fr xcc
 
 # Delete all HTML & PDF files
 RUN find /opt/toolchains -name html | xargs rm -rf
