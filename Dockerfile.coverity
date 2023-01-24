@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.24.8
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8
 
 # proxy args set/override at build stage like this:
 # docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
