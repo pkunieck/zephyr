@@ -57,7 +57,7 @@ RUN mkdir xcc && cd xcc && \
     wget ${WGET_ARGS} -nd -P RG-2017.8 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RG-2017.8/ && \
     wget ${WGET_ARGS} -nd -P RI-2021.7 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RI-2021.7/ && \
     wget ${WGET_ARGS} -nd -P RI-2022.10 -r -l 1 --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/RI-2022.10/ && \
-    ./install.sh /opt/toolchains/xcc && \
+    ./install.sh /opt/toolchains/xtensa/XtDevTools/install && \
     cd .. && rm -fr xcc
 
 # Clean up stale packages
