@@ -65,7 +65,8 @@ COPY ./tools /opt/tools
 
 
 # Install NSIM
-RUN wget ${WGET_ARGS} http://gale.hf.intel.com/~nashif/nsim_free.tgz && \
+RUN wget ${WGET_ARGS}  --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" \
+	https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/simulators/nsim/nsim_free.tgz && \
 	mkdir -p /tmp/nsim && \
 	tar xf nsim_free.tgz -C /tmp/nsim && \
 	cp -a /tmp/nsim/nSIM_64/* /opt/tools/ && \
