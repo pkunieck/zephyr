@@ -48,12 +48,13 @@ RUN	apt install -y --no-install-recommends libusb-1.0-0-dev
 RUN pip3 install yamllint
 
 # Install SF100 (Dediprog)
-RUN git clone https://github.com/DediProgSW/SF100Linux && \
-	cd SF100Linux && \
+RUN git clone https://github.com/DediProgSW/SF100Linux /tmp/SF100Linux  && \
+	cd /tmp/SF100Linux && \
 	git checkout c76e10f03ab758b1dce1c54e586a7a14fbcf298a && \
 	make && \
 	mkdir -p /etc/udev/rules.d && \
-	make install
+	make install && \
+	rm -rf /tmp/SF100Linux
 
 # Install additional pre-built tools:
 # - mec172 SPI image builder
