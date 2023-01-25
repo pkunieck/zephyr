@@ -138,4 +138,4 @@ RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity
         --license.agreement=agree --license.region=0 --license.type.choice=0 --license.cov.path=/tmp/license.dat \
         --component.sdk=false --component.skip.documentation=true && \
 	rm /tmp/cov-analysis-linux64-2022.3.1.sh /tmp/license.dat && \
-	cov-configure --gcc
+	chown -R user:user /opt/coverity
