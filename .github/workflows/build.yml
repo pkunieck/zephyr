@@ -47,34 +47,23 @@ jobs:
         run: |
           chmod 777 entrypoint.sh
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-            -f Dockerfile.lite \
             --build-arg HTTPPROXY=$http_proxy \
             --build-arg HTTPSPROXY=$https_proxy \
             --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-lite \
             -t ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG} .
       - name: build XCC container image
         env:
           DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
-          chmod 777 entrypoint.sh
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-            -f Dockerfile.xcc \
             --build-arg HTTPPROXY=$http_proxy \
             --build-arg HTTPSPROXY=$https_proxy \
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-xcc \
             -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
-      - name: build Coverity container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
-        run: |
-          chmod 777 entrypoint.sh
-          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-            -f Dockerfile.coverity \
-            --build-arg HTTPPROXY=$http_proxy \
-            --build-arg HTTPSPROXY=$https_proxy \
-            --build-arg NOPROXY=$no_proxy \
-            -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG} .
       - name: build main container image
         env:
           DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
@@ -84,7 +73,19 @@ jobs:
             --build-arg HTTPSPROXY=$https_proxy \
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-sdk \
             -t ${{ env.registry }}/${{ env.project }}/ci-sdk:${DOCKER_TAG} .
+      - name: build Coverity container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        run: |
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-coverity \
+            -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG} .
       - name: login into caas
         if: ${{ github.event_name == 'push' }}
         run: |
