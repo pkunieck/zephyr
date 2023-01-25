@@ -10,7 +10,7 @@ ARG ARTIFACTORY_API_KEY=
 #     'http://<proxy.url>:<proxy.port'
 # otherwise the awk-based proxy.xml writer (below) will fail
 
-# Incorporate proxy settings- these affect the running container ONLY.
+# Corporate proxy settings- these affect the running container ONLY.
 # If you're having issues with the docker build behind a proxy, make sure the docker daemon is configured for proxy access:
 # https://docs.docker.com/network/proxy/
 ENV no_proxy=$NOPROXY
@@ -84,13 +84,12 @@ RUN usermod -a -G dialout user
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Used by at least the docker CI
-ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 
 # Set back to 'user' as the Zephyr container has the default user set to root
 # w/o this files will be created as root and cause issues
 USER user
 
+#####################
 FROM ci-lite as ci-xcc
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
@@ -123,9 +122,13 @@ RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 COPY --from=ci-xcc /opt/toolchains/xtensa /opt/toolchains/xtensa
 COPY --from=ci-lite /opt/tools /opt/tools
 
+# Used by at least the docker CI
+ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
+USER user
 
 ###################
 FROM ci-sdk AS ci-coverity
+USER root
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 ENV PATH="/opt/coverity/analysis/bin:$PATH"
@@ -139,3 +142,4 @@ RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity
         --component.sdk=false --component.skip.documentation=true && \
 	rm /tmp/cov-analysis-linux64-2022.3.1.sh /tmp/license.dat && \
 	chown -R user:user /opt/coverity
+USER user
