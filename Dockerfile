@@ -91,6 +91,8 @@ USER user
 
 #####################
 FROM ci-lite as ci-xcc
+
+ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 USER root
@@ -106,9 +108,13 @@ RUN mkdir xcc && cd xcc && \
 
 USER user
 
-
 ###################
 FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8 as ci-sdk
+
+ARG ZSDK_VERSION
+ENV ZSDK_VERSION=$ZSDK_VERSION
+ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
+
 RUN apt-get -yq update && \
 	apt-get -yq upgrade && \
 	apt-get -yq update
