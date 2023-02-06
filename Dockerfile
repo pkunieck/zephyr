@@ -126,6 +126,16 @@ USER user
 
 ###################
 FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8 as ci-sdk
+ARG HTTPPROXY=
+ARG HTTPSPROXY=
+ARG NOPROXY=
+ARG ARTIFACTORY_API_KEY=
+ENV no_proxy=$NOPROXY
+ENV http_proxy=$HTTPPROXY
+ENV https_proxy=$HTTPSPROXY
+ENV NO_PROXY=$NOPROXY
+ENV HTTP_PROXY=$HTTPPROXY
+ENV HTTPS_PROXY=$HTTPSPROXY
 
 ARG ZSDK_VERSION
 ENV ZSDK_VERSION=0.15.2
@@ -144,9 +154,12 @@ RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 COPY --from=ci-xcc /opt/toolchains/xtensa /opt/toolchains/xtensa
 COPY --from=ci-lite /opt/tools /opt/tools
 
+
 # Used by at least the docker CI
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
+
 USER user
+RUN pip3 install elasticsearch yamllint -U
 
 ###################
 FROM ci-sdk AS ci-coverity
