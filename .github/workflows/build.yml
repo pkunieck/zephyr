@@ -64,6 +64,17 @@ jobs:
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-xcc \
             -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
+      - name: build sim sdk container image
+        env:
+          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
+        run: |
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target acesim-sdk \
+            -t ${{ env.registry }}/${{ env.project }}/acesim-sdk:${DOCKER_TAG} .
       - name: build main container image
         env:
           DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}

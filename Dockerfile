@@ -96,6 +96,8 @@ ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 USER root
+ENV ACE10_CORE=ace10_LX7HiFi4_2022_10_linux.tgz
+
 RUN mkdir xcc && cd xcc && \
     wget ${WGET_ARGS} --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/xcc/install.sh && \
     chmod a+x install.sh && \
@@ -107,6 +109,20 @@ RUN mkdir xcc && cd xcc && \
     find /opt/toolchains/xtensa/ -name html | xargs rm -rf
 
 USER user
+
+#################### For build the simulator
+FROM ci-xcc as acesim-sdk
+USER root
+RUN dpkg --add-architecture i386 && \
+        apt-get -y update && \
+        apt-get install --no-install-recommends -y \
+	libboost-all-dev \
+        patchelf
+
+RUN pip3 install meson -U
+
+USER user
+
 
 ###################
 FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8 as ci-sdk
