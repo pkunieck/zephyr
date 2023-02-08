@@ -108,6 +108,7 @@ RUN mkdir xcc && cd xcc && \
     cd .. && rm -fr xcc && \
     find /opt/toolchains/xtensa/ -name html | xargs rm -rf
 
+RUN usermod -a -G dialout user
 USER user
 
 #################### For build the simulator
@@ -119,10 +120,12 @@ RUN dpkg --add-architecture i386 && \
 	libboost-all-dev \
         patchelf
 
+
+RUN usermod -a -G dialout user
+USER user
 RUN pip3 install meson -U
 
-USER user
-
+ENV PATH="$HOME/.local/bin:$PATH"
 
 ###################
 FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.10 as ci-sdk
@@ -158,8 +161,10 @@ COPY --from=ci-lite /opt/tools /opt/tools
 # Used by at least the docker CI
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 
+RUN usermod -a -G dialout user
 USER user
 RUN pip3 install elasticsearch -U
+ENV PATH="$HOME/.local/bin:/opt/tools/bin:$PATH"
 
 ###################
 FROM ci-sdk AS ci-coverity
