@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.24.8 as ci-lite
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.24.10 as ci-lite
 
 # proxy args set/override at build stage like this:
 # docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
@@ -125,7 +125,7 @@ USER user
 
 
 ###################
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.8 as ci-sdk
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.10 as ci-sdk
 ARG HTTPPROXY=
 ARG HTTPSPROXY=
 ARG NOPROXY=
@@ -159,7 +159,7 @@ COPY --from=ci-lite /opt/tools /opt/tools
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 
 USER user
-RUN pip3 install elasticsearch yamllint -U
+RUN pip3 install elasticsearch -U
 
 ###################
 FROM ci-sdk AS ci-coverity
