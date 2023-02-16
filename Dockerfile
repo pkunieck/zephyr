@@ -152,7 +152,8 @@ RUN apt-get -yq update && \
 # - libncurses5:amd64 needed for nsim simulator
 RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 	lib32ncurses6 lib32ncurses-dev libcrypt1:i386 libncurses5:i386 libcrypt1:amd64 \
-	libtinfo5 libncursesw5 libncurses5:amd64 libusb-1.0-0-dev
+	libtinfo5 libncursesw5 libncurses5:amd64 libusb-1.0-0-dev \
+	netcat telnet
 
 COPY --from=ci-xcc /opt/toolchains/xtensa /opt/toolchains/xtensa
 COPY --from=ci-lite /opt/tools /opt/tools
