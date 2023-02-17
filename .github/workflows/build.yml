@@ -32,18 +32,18 @@ jobs:
           # If push due to a normal commit to main GITHUB_REF will look like
           # refs/heads/master convert that to 'latest'
           if [ ${GITHUB_REF} == "refs/heads/main" ]; then
-            echo ::set-output name=DOCKER_TAG::latest;
+            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
           elif [ ${{ github.event_name }} == 'pull_request' ]; then
-            echo ::set-output name=DOCKER_TAG::${{github.event.pull_request.number}};
+            echo "DOCKER_TAG=${{github.event.pull_request.number}}" >> $GITHUB_ENV
           else
             # If push due to a tag GITHUB_REF will look like refs/tags/TAG-FOO
             # chop of 'refs/tags' so DOCKER_TAG=TAG-FOO
-            echo ::set-output name=DOCKER_TAG::${GITHUB_REF/refs\/tags\//};
+            echo "DOCKER_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
           fi
-      - uses: actions/checkout@v2
+
+      - uses: actions/checkout@v3
+
       - name: build lite container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           chmod 777 entrypoint.sh
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
@@ -52,10 +52,9 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-lite \
-            -t ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG} .
+            -t ${{ env.registry }}/${{ env.project }}/ci-lite:${{ env.DOCKER_TAG }} .
+
       - name: build XCC container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy \
@@ -63,10 +62,9 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-xcc \
-            -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG} .
+            -t ${{ env.registry }}/${{ env.project }}/ci-xcc:${{ env.DOCKER_TAG }} .
+
       - name: build sim sdk container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy \
@@ -74,10 +72,9 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target acesim-sdk \
-            -t ${{ env.registry }}/${{ env.project }}/acesim-sdk:${DOCKER_TAG} .
+            -t ${{ env.registry }}/${{ env.project }}/acesim-sdk:${{ env.DOCKER_TAG }} .
+
       - name: build main container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy \
@@ -85,10 +82,9 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-sdk \
-            -t ${{ env.registry }}/${{ env.project }}/ci-sdk:${DOCKER_TAG} .
+            -t ${{ env.registry }}/${{ env.project }}/ci-sdk:${{ env.DOCKER_TAG }} .
+
       - name: build Coverity container image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         run: |
           docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
             --build-arg HTTPPROXY=$http_proxy \
@@ -96,7 +92,8 @@ jobs:
             --build-arg NOPROXY=$no_proxy \
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-coverity \
-            -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG} .
+            -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${{ env.DOCKER_TAG }} .
+
       - name: login into caas
         if: ${{ github.event_name == 'push' }}
         run: |
@@ -105,32 +102,24 @@ jobs:
             --password-stdin ${{ env.registry }}
 
       - name: push lite image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         if: ${{ github.event_name == 'push' }}
         run: |
-          docker push ${{ env.registry }}/${{ env.project }}/ci-lite:${DOCKER_TAG}
+          docker push ${{ env.registry }}/${{ env.project }}/ci-lite:${{ env.DOCKER_TAG }}
 
       - name: push XCC image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         if: ${{ github.event_name == 'push' }}
         run: |
-          docker push ${{ env.registry }}/${{ env.project }}/ci-xcc:${DOCKER_TAG}
+          docker push ${{ env.registry }}/${{ env.project }}/ci-xcc:${{ env.DOCKER_TAG }}
 
       - name: push Coverity image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         if: ${{ github.event_name == 'push' }}
         run: |
-          docker push ${{ env.registry }}/${{ env.project }}/ci-coverity:${DOCKER_TAG}
+          docker push ${{ env.registry }}/${{ env.project }}/ci-coverity:${{ env.DOCKER_TAG }}
 
       - name: push main image
-        env:
-          DOCKER_TAG: ${{ steps.docker_tag.outputs.DOCKER_TAG }}
         if: ${{ github.event_name == 'push' }}
         run: |
-          docker push ${{ env.registry }}/${{ env.project }}/ci-sdk:${DOCKER_TAG}
+          docker push ${{ env.registry }}/${{ env.project }}/ci-sdk:${{ env.DOCKER_TAG }}
 
       - name: registry logout
         if: ${{ always() }}
