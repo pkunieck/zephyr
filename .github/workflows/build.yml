@@ -94,6 +94,16 @@ jobs:
             --target ci-coverity \
             -t ${{ env.registry }}/${{ env.project }}/ci-coverity:${{ env.DOCKER_TAG }} .
 
+      - name: build oneapi container image
+        run: |
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-oneapi \
+            -t ${{ env.registry }}/${{ env.project }}/ci-oneapi:${{ env.DOCKER_TAG }} .
+
       - name: login into caas
         if: ${{ github.event_name == 'push' }}
         run: |
@@ -115,6 +125,11 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           docker push ${{ env.registry }}/${{ env.project }}/ci-coverity:${{ env.DOCKER_TAG }}
+
+      - name: push oneapi image
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-oneapi:${{ env.DOCKER_TAG }}
 
       - name: push main image
         if: ${{ github.event_name == 'push' }}

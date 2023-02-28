@@ -187,3 +187,20 @@ RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 USER user
+
+######## oneapi #############
+FROM ci-lite as ci-oneapi
+
+ARG ARTIFACTORY_API_KEY=
+ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
+USER root
+
+RUN mkdir oneapi && cd oneapi && mkdir -p /opt/toolchains/oneapi && \
+   wget ${WGET_ARGS} --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/toolchain/openapi/l_dpcpp-cpp-compiler_p_2023.0.0.25393_offline.sh && \
+   chmod a+x l_dpcpp-cpp-compiler_p_2023.0.0.25393_offline.sh && \
+   ./l_dpcpp-cpp-compiler_p_2023.0.0.25393_offline.sh -a -s --eula accept --install-dir=/opt/toolchains/oneapi && \
+   cd .. && rm -fr oneapi
+
+USER user
+
+
