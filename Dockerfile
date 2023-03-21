@@ -60,7 +60,7 @@ RUN git clone https://github.com/DediProgSW/SF100Linux /tmp/SF100Linux && \
 	rm -rf /tmp/SF100Linux
 
 # Install additional pre-built tools:
-# - mec172 SPI image builder
+# - mec172 and mec1501 SPI image builder
 COPY ./tools /opt/tools
 
 
