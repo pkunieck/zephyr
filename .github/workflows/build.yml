@@ -136,6 +136,12 @@ jobs:
         run: |
           docker push ${{ env.registry }}/${{ env.project }}/ci-sdk:${{ env.DOCKER_TAG }}
 
+      - name: cleanup
+        if: ${{ github.event_name  == 'pull_request' }}
+        run: |
+          for l in ci-sdk ci-coverity ci-xcc ci-lite acesim-sdk ci-oneapi; do
+            docker rmi ${{ env.registry }}/${{ env.project }}/${l}:${DOCKER_TAG} || true
+          done
       - name: registry logout
         if: ${{ always() }}
         run: |
