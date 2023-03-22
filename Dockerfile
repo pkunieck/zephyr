@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.24.11 as ci-lite
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.25.1 as ci-lite
 
 # proxy args set/override at build stage like this:
 # docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
@@ -128,7 +128,7 @@ RUN pip3 install meson -U
 ENV PATH="$HOME/.local/bin:$PATH"
 
 ###################
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.24.11 as ci-sdk
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.25.1 as ci-sdk
 ARG HTTPPROXY=
 ARG HTTPSPROXY=
 ARG NOPROXY=
@@ -141,7 +141,7 @@ ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
 ARG ZSDK_VERSION
-ENV ZSDK_VERSION=0.15.2
+ENV ZSDK_VERSION=0.16.0
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 
 RUN apt-get -yq update && \
@@ -173,7 +173,7 @@ USER root
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 ENV PATH="/opt/coverity/analysis/bin:$PATH"
-ENV ZSDK_VERSION=0.15.2
+ENV ZSDK_VERSION=0.16.0
 
 # Download coverity install dependencies
 RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2022.3.1.sh -P /tmp/ && \
