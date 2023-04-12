@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.25.1 as ci-lite
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.26.0 as ci-lite
 
 # proxy args set/override at build stage like this:
 # docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
@@ -136,7 +136,7 @@ RUN pip3 install meson -U
 ENV PATH="$HOME/.local/bin:$PATH"
 
 ###################
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.25.1 as ci-sdk
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.26.0 as ci-sdk
 ARG HTTPPROXY=
 ARG HTTPSPROXY=
 ARG NOPROXY=
