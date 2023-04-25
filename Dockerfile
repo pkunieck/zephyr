@@ -175,6 +175,14 @@ RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
 COPY --from=ci-xcc /opt/toolchains/xtensa /opt/toolchains/xtensa
 COPY --from=ci-lite /opt/tools /opt/tools
 
+RUN pip install --upgrade pip
+
+# Install labgrid
+RUN git clone https://github.com/labgrid-project/labgrid /tmp/labgrid && \
+	pushd /tmp/labgrid && \
+	pip install . && \
+	popd && \
+	rm -rf /tmp/labgrid
 
 # Used by at least the docker CI
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
