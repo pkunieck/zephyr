@@ -228,4 +228,40 @@ RUN mkdir oneapi && cd oneapi && mkdir -p /opt/toolchains/oneapi && \
 
 USER user
 
+#####2.7 sdk docker######
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.18.4 as ci-sdk-2.7lts
+ARG HTTPPROXY=
+ARG HTTPSPROXY=
+ARG NOPROXY=
+ARG ARTIFACTORY_API_KEY=
+ENV no_proxy=$NOPROXY
+ENV http_proxy=$HTTPPROXY
+ENV https_proxy=$HTTPSPROXY
+ENV NO_PROXY=$NOPROXY
+ENV HTTP_PROXY=$HTTPPROXY
+ENV HTTPS_PROXY=$HTTPSPROXY
+
+ARG ZSDK_VERSION
+ENV ZSDK_VERSION=0.13.1
+ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
+
+RUN apt-get -yq update && \
+	apt-get -yq upgrade && \
+	apt-get -yq update
+# Add more packages needed for additional tools
+# - libncurses5:amd64 needed for nsim simulator
+RUN	apt install -y --no-install-recommends zlib1g:i386 libc6-i386 \
+	lib32ncurses6 lib32ncurses-dev libcrypt1:i386 libncurses5:i386 libcrypt1:amd64 \
+	libtinfo5 libncursesw5 libncurses5:amd64 libusb-1.0-0-dev \
+	netcat telnet
+
+COPY --from=ci-lite /opt/tools /opt/tools
+
+# Used by at least the docker CI
+ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
+
+RUN usermod -a -G dialout user
+USER user
+RUN pip3 install elasticsearch -U
+ENV PATH="$HOME/.local/bin:/opt/tools/bin:$PATH"
 

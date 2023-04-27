@@ -103,6 +103,16 @@ jobs:
             --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
             --target ci-oneapi \
             -t ${{ env.registry }}/${{ env.project }}/ci-oneapi:${{ env.DOCKER_TAG }} .
+      
+      - name: build 2.7LTS sdk container image
+        run: |
+          docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+            --build-arg HTTPPROXY=$http_proxy \
+            --build-arg HTTPSPROXY=$https_proxy \
+            --build-arg NOPROXY=$no_proxy \
+            --build-arg ARTIFACTORY_API_KEY=${{ secrets.SYS_TMBUILD_ARTIFACTORY_API_KEY }} \
+            --target ci-sdk-2.7lts \
+            -t ${{ env.registry }}/${{ env.project }}/ci-sdk-2.7lts:${{ env.DOCKER_TAG }} .
 
       - name: login into caas
         if: ${{ github.event_name == 'push' }}
@@ -131,6 +141,11 @@ jobs:
         run: |
           docker push ${{ env.registry }}/${{ env.project }}/ci-oneapi:${{ env.DOCKER_TAG }}
 
+      - name: push ci-sdk-2.7LTS image
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker push ${{ env.registry }}/${{ env.project }}/ci-sdk-2.7lts:${{ env.DOCKER_TAG }}
+
       - name: push main image
         if: ${{ github.event_name == 'push' }}
         run: |
@@ -139,7 +154,7 @@ jobs:
       - name: cleanup
         if: ${{ github.event_name  == 'pull_request' }}
         run: |
-          for l in ci-sdk ci-coverity ci-xcc ci-lite acesim-sdk ci-oneapi; do
+          for l in ci-sdk ci-coverity ci-xcc ci-lite acesim-sdk ci-oneapi ci-sdk-2.7lts; do
             docker rmi ${{ env.registry }}/${{ env.project }}/${l}:${DOCKER_TAG} || true
           done
       - name: registry logout
