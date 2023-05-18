@@ -1,4 +1,4 @@
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.26.2 as ci-lite
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci-base:v0.26.4 as ci-lite
 
 # proxy args set/override at build stage like this:
 # docker build --build-arg HTTPPROXY=$http_proxy --build-arg HTTPSPROXY=$https_proxy --build-arg NOPROXY=$no_proxy ...
@@ -106,7 +106,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 # w/o this files will be created as root and cause issues
 USER user
 
-#####################
+###########XCC Docker##########
 FROM ci-lite as ci-xcc
 
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
@@ -128,7 +128,7 @@ RUN mkdir xcc && cd xcc && \
 RUN usermod -a -G dialout user
 USER user
 
-#################### For build the simulator
+#################### For build the simulator######
 FROM ci-xcc as acesim-sdk
 USER root
 RUN dpkg --add-architecture i386 && \
@@ -144,8 +144,8 @@ RUN pip3 install meson -U
 
 ENV PATH="$HOME/.local/bin:$PATH"
 
-###################
-FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.26.2 as ci-sdk
+##########CI-SDK Docker#########
+FROM dockerhubcache.caas.intel.com/zephyrprojectrtos/ci:v0.26.4 as ci-sdk
 ARG HTTPPROXY=
 ARG HTTPSPROXY=
 ARG NOPROXY=
@@ -158,7 +158,7 @@ ENV HTTP_PROXY=$HTTPPROXY
 ENV HTTPS_PROXY=$HTTPSPROXY
 
 ARG ZSDK_VERSION
-ENV ZSDK_VERSION=0.16.0
+ENV ZSDK_VERSION=0.16.1
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 
 RUN apt-get -yq update && \
@@ -192,7 +192,7 @@ USER user
 RUN pip3 install elasticsearch -U
 ENV PATH="$HOME/.local/bin:/opt/tools/bin:$PATH"
 
-###################
+##########CI COVERITY DOCKER#########
 FROM ci-sdk AS ci-coverity
 USER root
 ARG ARTIFACTORY_API_KEY=
@@ -213,7 +213,7 @@ ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
 USER user
 
-######## oneapi #############
+######## oneapi DOCKER #############
 FROM ci-lite as ci-oneapi
 
 ARG ARTIFACTORY_API_KEY=
