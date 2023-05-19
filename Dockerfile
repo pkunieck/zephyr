@@ -72,6 +72,9 @@ RUN git clone https://github.com/DediProgSW/SF100Linux /tmp/SF100Linux && \
 # - mec172 and mec1501 SPI image builder
 COPY ./tools /opt/tools
 
+# Install Linux-tools-generic
+RUN sudo apt-get install -y linux-tools-generic
+
 # Install JLink firmware
 RUN wget ${WGET_ARGS}  --header="X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" \
 	https://ubit-artifactory-or.intel.com/artifactory/zephyr-generic-or-local/tools/JLink_Linux_V786f_x86_64.tgz && \
