@@ -200,16 +200,16 @@ USER root
 ARG ARTIFACTORY_API_KEY=
 ENV WGET_ARGS="-q --show-progress --progress=bar:force:noscroll --no-check-certificate"
 ENV PATH="/opt/coverity/analysis/bin:$PATH"
-ENV ZSDK_VERSION=0.16.0
+ENV ZSDK_VERSION=0.16.1
 
 # Download coverity install dependencies
-RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2022.3.1.sh -P /tmp/ && \
+RUN wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2023.3.0.sh -P /tmp/ && \
 	wget ${WGET_ARGS} https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/license.dat -P /tmp/ && \
-	sh /tmp/cov-analysis-linux64-2022.3.1.sh -q \
+	sh /tmp/cov-analysis-linux64-2023.3.0.sh -q \
         --installation.dir=/opt/coverity/analysis/ \
         --license.agreement=agree --license.region=0 --license.type.choice=0 --license.cov.path=/tmp/license.dat \
         --component.sdk=false --component.skip.documentation=true && \
-	rm /tmp/cov-analysis-linux64-2022.3.1.sh /tmp/license.dat && \
+	rm /tmp/cov-analysis-linux64-2023.3.0.sh /tmp/license.dat && \
 	chown -R user:user /opt/coverity
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-$ZSDK_VERSION
 ENV XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
