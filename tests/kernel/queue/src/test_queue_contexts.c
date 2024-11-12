@@ -337,7 +337,8 @@ ZTEST(queue_api_1cpu, test_queue_poll_race)
 {
 	int prio = k_thread_priority_get(k_current_get());
 	static volatile int mid_count, low_count;
-
+	low_count = 0;
+	mid_count = 0;
 	k_queue_init(&queue);
 
 	k_thread_create(&tdata, tstack, STACK_SIZE,
